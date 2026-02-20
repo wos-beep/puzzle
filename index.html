@@ -2,124 +2,150 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ホワサバ パズル管理 (Dark)</title>
+    <title>ホワサバ パズル管理 (Multi-Char)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
-            /* ダークモード用のカラー設定 */
             --primary: #3498db;
-            --secondary: #1a1a1a; /* より深い黒 */
+            --secondary: #1a1a1a;
             --accent: #e74c3c;
-            --bg: #121212;      /* 全体の背景 */
-            --card-bg: #1e1e1e; /* カードの背景 */
-            --text: #e0e0e0;    /* 文字色 */
-            --border: #333333;  /* 枠線 */
+            --bg: #121212;
+            --card-bg: #1e1e1e;
+            --text: #e0e0e0;
+            --border: #333333;
             --rarity-bg: #252525;
         }
 
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); line-height: 1.6; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); }
         .container { max-width: 800px; margin: 0 auto; background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
-        h1 { font-size: 1.4rem; text-align: center; color: var(--primary); margin-bottom: 20px; }
-
-        /* カテゴリ（折りたたみ） */
-        .category { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--card-bg); }
-        .category-title { 
-            background: var(--secondary); color: var(--primary); padding: 14px 20px; 
-            cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid var(--border);
+        /* キャラクター選択エリア */
+        .char-selector { 
+            background: #252525; padding: 15px; border-radius: 10px; margin-bottom: 20px; 
+            border: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
         }
-        .category-title::after { content: '▼'; font-size: 0.8rem; transition: 0.3s; color: var(--text); }
+        select { background: #333; color: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 5px; flex-grow: 1; }
+        .char-btn { padding: 8px 12px; font-size: 0.8rem; cursor: pointer; border-radius: 5px; border: none; font-weight: bold; }
+
+        h1 { font-size: 1.2rem; text-align: center; color: var(--primary); margin: 10px 0 20px; }
+
+        .category { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        .category-title { background: var(--secondary); color: var(--primary); padding: 14px 20px; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; }
+        .category-title::after { content: '▼'; font-size: 0.8rem; transition: 0.3s; }
         .category.active .category-title::after { transform: rotate(180deg); }
-        .category-content { display: none; padding: 15px; background: var(--card-bg); }
+        .category-content { display: none; padding: 15px; }
         .category.active .category-content { display: block; }
 
-        /* セット & ピース表示 */
-        .set-container { margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
-        .set-title { font-weight: bold; color: var(--primary); margin-bottom: 12px; font-size: 1rem; border-left: 4px solid var(--primary); padding-left: 10px; }
+        .set-container { margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+        .set-title { font-weight: bold; color: var(--primary); margin-bottom: 10px; border-left: 4px solid var(--primary); padding-left: 10px; }
+        .rarity-group { margin-bottom: 10px; padding: 10px; background: var(--rarity-bg); border-radius: 8px; }
+        .stars { color: #f1c40f; font-size: 0.8rem; margin-bottom: 5px; display: block; }
         
-        .rarity-group { margin-bottom: 15px; padding: 10px; background: var(--rarity-bg); border-radius: 8px; }
-        .stars { color: #f1c40f; font-size: 0.8rem; margin-bottom: 8px; display: block; }
-        
-        .piece-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; }
-        .piece-item { 
-            display: flex; flex-direction: column; align-items: center; 
-            padding: 8px; border: 1px solid var(--border); border-radius: 8px; 
-            cursor: pointer; transition: 0.2s; position: relative; user-select: none;
-            background: #2c2c2c;
-        }
-        /* 所持・余りの色もダークモードに最適化 */
-        .piece-item.owned { background: #1a3a5a; border-color: var(--primary); color: #fff; }
-        .piece-item.extra { background: #4a1a1a; border-color: var(--accent); color: #fff; }
-        
-        .piece-num { font-weight: bold; font-size: 0.9rem; }
-        .status-badge { font-size: 0.6rem; padding: 2px 4px; border-radius: 4px; display: none; margin-top: 4px; }
-        .extra .status-badge { display: block; background: var(--accent); color: white; }
-        .s5-label { color: #e67e22; font-size: 0.6rem; margin-top: 2px; }
+        .piece-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 8px; }
+        .piece-item { display: flex; flex-direction: column; align-items: center; padding: 8px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: #2c2c2c; }
+        .piece-item.owned { background: #1a3a5a; border-color: var(--primary); }
+        .piece-item.extra { background: #4a1a1a; border-color: var(--accent); }
+        .status-badge { font-size: 0.5rem; background: var(--accent); padding: 1px 3px; border-radius: 3px; margin-top: 3px; display: none; }
+        .extra .status-badge { display: block; }
 
-        /* 操作エリア */
         .controls, .backup-area { background: var(--secondary); padding: 15px; border-radius: 12px; margin-top: 20px; border: 1px solid var(--border); }
-        textarea { 
-            width: 100%; height: 100px; margin-top: 10px; font-family: monospace; 
-            border: 1px solid var(--border); border-radius: 8px; padding: 10px; 
-            box-sizing: border-box; resize: vertical; background: #222; color: #fff;
-        }
-        button { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; margin-bottom: 8px; }
-        button:hover { filter: brightness(1.1); }
-        .btn-backup { background: #444; font-size: 0.85rem; padding: 10px; color: #bbb; }
+        textarea { width: 100%; height: 80px; margin-top: 10px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div class="char-selector">
+        <select id="char-select" onchange="switchChar()"></select>
+        <button class="char-btn" style="background: #27ae60; color: white;" onclick="addChar()">追加</button>
+        <button class="char-btn" style="background: #c0392b; color: white;" onclick="deleteChar()">削除</button>
+    </div>
+
     <h1>🧩 ホワサバ パズル管理</h1>
-    
-    <div id="puzzle-list">読み込み中...</div>
+    <div id="puzzle-list"></div>
 
     <div class="controls">
         <button onclick="generateOutput()">共有用テキストを生成</button>
-        <textarea id="output" readonly placeholder="ここに共有用テキストが出ます"></textarea>
+        <textarea id="output" readonly></textarea>
     </div>
 
     <div class="backup-area">
-        <p style="font-size: 0.8rem; font-weight: bold; color: #888; margin: 0 0 10px 0;">バックアップ / インポート</p>
-        <div style="display: flex; gap: 8px;">
-            <button class="btn-backup" onclick="exportData()">書き出し</button>
-            <button class="btn-backup" style="background:#1e7e46; color: white;" onclick="importData()">読み込み</button>
-        </div>
-        <textarea id="backup-text" placeholder="バックアップデータをここに貼り付け"></textarea>
+        <button style="background: #555;" onclick="exportData()">バックアップ書き出し</button>
+        <textarea id="backup-text" placeholder="ここに貼り付けて読み込み"></textarea>
+        <button style="background: #1e7e46;" onclick="importData()">読み込み実行</button>
     </div>
 </div>
 
 <script>
 let puzzleData = {};
-let counts = JSON.parse(localStorage.getItem('puzzleCountsV3')) || {};
+let currentChar = "";
+let allData = JSON.parse(localStorage.getItem('puzzle_all_chars')) || { "デフォルト": {} };
 
 async function loadData() {
     try {
         const response = await fetch('data.json');
-        if (!response.ok) throw new Error('JSON not found');
         puzzleData = await response.json();
+        
+        // 初回起動時のキャラクター設定
+        const lastChar = localStorage.getItem('puzzle_last_char');
+        currentChar = (lastChar && allData[lastChar]) ? lastChar : Object.keys(allData)[0];
+        
+        updateCharList();
         init();
-    } catch (e) {
-        document.getElementById('puzzle-list').innerText = "エラー: data.jsonの読み込みに失敗しました。";
+    } catch (e) { document.getElementById('puzzle-list').innerText = "data.jsonが見つかりません。"; }
+}
+
+function updateCharList() {
+    const select = document.getElementById('char-select');
+    select.innerHTML = "";
+    Object.keys(allData).forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.innerText = name;
+        if(name === currentChar) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+function addChar() {
+    const name = prompt("新しいキャラクター名を入力してください:");
+    if (name && !allData[name]) {
+        allData[name] = {};
+        currentChar = name;
+        saveAll();
+        updateCharList();
+        init();
+    } else if (allData[name]) { alert("その名前は既に存在します。"); }
+}
+
+function deleteChar() {
+    if (Object.keys(allData).length <= 1) return alert("最後のキャラクターは削除できません。");
+    if (confirm(`「${currentChar}」のデータを削除しますか？`)) {
+        delete allData[currentChar];
+        currentChar = Object.keys(allData)[0];
+        saveAll();
+        updateCharList();
+        init();
     }
+}
+
+function switchChar() {
+    currentChar = document.getElementById('char-select').value;
+    localStorage.setItem('puzzle_last_char', currentChar);
+    init();
 }
 
 function init() {
     const listEl = document.getElementById('puzzle-list');
     listEl.innerHTML = "";
     const closedCategories = ["復活の炎", "英雄の歌", "世界探究"];
+    const counts = allData[currentChar] || {};
 
     for (const cat in puzzleData) {
         const catDiv = document.createElement('div');
-        catDiv.className = 'category';
-        if (!closedCategories.includes(cat)) catDiv.classList.add('active');
-
-        const titleEl = document.createElement('div');
-        titleEl.className = 'category-title';
-        titleEl.innerText = cat;
-        titleEl.onclick = () => catDiv.classList.toggle('active');
+        catDiv.className = 'category' + (!closedCategories.includes(cat) ? ' active' : '');
+        catDiv.innerHTML = `<div class="category-title" onclick="this.parentElement.classList.toggle('active')">${cat}</div>`;
         
         const contentDiv = document.createElement('div');
         contentDiv.className = 'category-content';
@@ -128,7 +154,6 @@ function init() {
             const setDiv = document.createElement('div');
             setDiv.className = 'set-container';
             setDiv.innerHTML = `<div class="set-title">${set}</div>`;
-
             for (const sub in puzzleData[cat][set]) {
                 const rarDiv = document.createElement('div');
                 rarDiv.className = 'rarity-group';
@@ -144,7 +169,7 @@ function init() {
                     item.className = `piece-item ${val >= 1 ? 'owned' : ''} ${val === 2 ? 'extra' : ''}`;
                     item.onclick = () => updateStatus(id, item);
                     item.oncontextmenu = (e) => { e.preventDefault(); updateStatus(id, item, (counts[id] === 2 ? 0 : 2)); };
-                    item.innerHTML = `<span class="piece-num">${num}</span><span class="status-badge">余り</span>${sub === 'S5' ? '<span class="s5-label">リク不可</span>' : ''}`;
+                    item.innerHTML = `<span class="piece-num">${num}</span><span class="status-badge">余り</span>`;
                     pieceList.appendChild(item);
                 });
                 rarDiv.appendChild(pieceList);
@@ -152,20 +177,26 @@ function init() {
             }
             contentDiv.appendChild(setDiv);
         }
-        catDiv.appendChild(titleEl);
         catDiv.appendChild(contentDiv);
         listEl.appendChild(catDiv);
     }
 }
 
 function updateStatus(id, el, nextVal) {
-    if (typeof nextVal === 'undefined') nextVal = ((counts[id] || 0) + 1) % 3;
-    counts[id] = nextVal;
+    if (!allData[currentChar]) allData[currentChar] = {};
+    if (typeof nextVal === 'undefined') nextVal = ((allData[currentChar][id] || 0) + 1) % 3;
+    allData[currentChar][id] = nextVal;
     el.className = `piece-item ${nextVal >= 1 ? 'owned' : ''} ${nextVal === 2 ? 'extra' : ''}`;
-    localStorage.setItem('puzzleCountsV3', JSON.stringify(counts));
+    saveAll();
+}
+
+function saveAll() {
+    localStorage.setItem('puzzle_all_chars', JSON.stringify(allData));
+    localStorage.setItem('puzzle_last_char', currentChar);
 }
 
 function generateOutput() {
+    const counts = allData[currentChar] || {};
     let res = { offers: {}, wants: {} };
     for (const cat in puzzleData) {
         for (const set in puzzleData[cat]) {
@@ -178,14 +209,24 @@ function generateOutput() {
             }
         }
     }
-    document.getElementById('output').value = `【持っているもの】\n${format(res.offers)}\n【欲しいもの】\n${format(res.wants)}`;
+    document.getElementById('output').value = `【${currentChar}のパズル】\n【持っているもの】\n${format(res.offers)}\n【欲しいもの】\n${format(res.wants)}`;
 }
 
 function appendRes(obj, cat, set, num) { if (!obj[cat]) obj[cat] = {}; if (!obj[cat][set]) obj[cat][set] = []; obj[cat][set].push(num); }
 function format(data) { let s = ""; for (const cat in data) { s += `${cat}\n`; for (const set in data[cat]) s += ` - ${set} ${compress(data[cat][set])}\n`; } return s || "なし\n"; }
 function compress(nums) { if (!nums.length) return ""; nums.sort((a, b) => a - b); let r = [], s = nums[0], e = nums[0]; for (let i = 1; i <= nums.length; i++) { if (i < nums.length && nums[i] === e + 1) e = nums[i]; else { r.push(s === e ? s : `${s}~${e}`); if (i < nums.length) s = e = nums[i]; } } return r.join(', '); }
-function exportData() { document.getElementById('backup-text').value = JSON.stringify(counts); alert("データを書き出しました。"); }
-function importData() { try { counts = JSON.parse(document.getElementById('backup-text').value); localStorage.setItem('puzzleCountsV3', JSON.stringify(counts)); init(); alert("読み込み完了！"); } catch(e) { alert("形式が正しくありません。"); } }
+
+function exportData() { document.getElementById('backup-text').value = JSON.stringify(allData); alert("全キャラ分のデータを書き出しました。"); }
+function importData() {
+    try {
+        allData = JSON.parse(document.getElementById('backup-text').value);
+        saveAll();
+        currentChar = Object.keys(allData)[0];
+        updateCharList();
+        init();
+        alert("全データを復元しました。");
+    } catch(e) { alert("形式が正しくありません。"); }
+}
 
 loadData();
 </script>
