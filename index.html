@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ホワサバ パズル管理 (Chat Optimized)</title>
+    <title>ホワサバ パズル管理 (Status Fixed)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
@@ -79,7 +79,6 @@
     <div class="output-area">
         <button class="main-btn" onclick="generateOutput()">共有用テキストを生成</button>
         <textarea id="output" readonly></textarea>
-        <p style="font-size: 0.7rem; color: #888; margin-top: 5px;">※ゲーム内チャットに最適化した改行で出力されます</p>
     </div>
 </div>
 
@@ -87,7 +86,6 @@
 let puzzleData = {};
 let currentChar = "";
 
-// --- 全過去バージョン対応の自動コンバート ---
 const STORAGE_KEY = 'puzzle_v10_data';
 const CHAR_KEY = 'puzzle_last_char_v10';
 let allData = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -138,7 +136,7 @@ function addChar() {
 
 function deleteChar() {
     if (Object.keys(allData).length <= 1) return;
-    if (confirm(`「${currentChar}」を削除しますまか？`)) { 
+    if (confirm(`「${currentChar}」を削除しますか？`)) { 
         delete allData[currentChar]; 
         currentChar = Object.keys(allData)[0]; 
         saveAll(); updateCharList(); init(); 
@@ -186,7 +184,7 @@ function init() {
                 const a = setDiv.classList.toggle('active'); 
                 allData[currentChar].closedSets[setKey] = !a; saveAll(); 
             };
-            titleArea.innerHTML = `<span class="set-name">${set}</span><span id="counter_${setKey}"></span>`;
+            titleArea.innerHTML = `<span class="set-name">${set}</span><span id="counter_${cat}_${set}"></span>`;
 
             const btnArea = document.createElement('div');
             btnArea.className = 'bulk-btns';
@@ -223,6 +221,8 @@ function init() {
             setHeader.appendChild(titleArea); setHeader.appendChild(btnArea);
             setDiv.appendChild(setHeader); setDiv.appendChild(setContent);
             catContent.appendChild(setDiv);
+            
+            // 重要：初期化時にカウンターを計算して表示
             updateCounter(cat, set);
         }
         catDiv.appendChild(catTitle); catDiv.appendChild(catContent); listEl.appendChild(catDiv);
@@ -230,7 +230,6 @@ function init() {
 }
 
 function updateCounter(cat, set) {
-    const setKey = `${cat}_${set}`;
     const counts = allData[currentChar].counts;
     let want = 0, s5missing = 0, extra = 0;
     for (const sub in puzzleData[cat][set]) {
@@ -243,7 +242,7 @@ function updateCounter(cat, set) {
             if (val === 2) extra++;
         });
     }
-    const el = document.getElementById(`counter_${setKey}`);
+    const el = document.getElementById(`counter_${cat}_${set}`);
     if (el) {
         el.innerHTML = (want > 0 ? `<span class="count-badge badge-want" style="margin-left:4px;">求:${want}</span>` : "") + 
                        (s5missing > 0 ? `<span class="count-badge badge-s5" style="margin-left:4px;">S5未:${s5missing}</span>` : "") + 
@@ -280,7 +279,6 @@ function saveAll() {
     localStorage.setItem(CHAR_KEY, currentChar); 
 }
 
-// --- 改行とフォーマットの最適化 ---
 function generateOutput() {
     const counts = allData[currentChar].counts || {};
     let res = { offers: {}, wants: {} };
@@ -295,12 +293,7 @@ function generateOutput() {
             }
         }
     }
-    // 出力形式を調整（空行を減らし、記号をシンプルに）
-    let txt = `【${currentChar}のパズル状況】\n\n`;
-    txt += `【譲れます】\n${format(res.offers)}`;
-    txt += `\n【求めてます】\n${format(res.wants)}`;
-    
-    // 全体の改行コードを \n に統一し、前後の空白を除去
+    let txt = `【${currentChar}のパズル状況】\n\n【譲れます】\n${format(res.offers)}\n【求めてます】\n${format(res.wants)}`;
     document.getElementById('output').value = txt.trim().replace(/\r\n/g, "\n");
 }
 
@@ -308,9 +301,9 @@ function appendRes(obj, c, s, n) { if(!obj[c]) obj[c]={}; if(!obj[c][s]) obj[c][
 function format(d) { 
     let s=""; 
     for(const c in d){ 
-        s += `${c}:\n`; // カテゴリ名
+        s += `${c}:\n`; 
         for(const st in d[c]) {
-            s += `-${st}(${compress(d[c][st])})\n`; // セット名と番号を1行に凝縮
+            s += `-${st}(${compress(d[c][st])})\n`;
         }
     } 
     return s || "なし\n"; 
