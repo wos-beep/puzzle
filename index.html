@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ホワサバ パズル管理 v10.6</title>
+    <title>ホワサバ パズル管理 v10.7</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
@@ -16,13 +16,18 @@
         select { background: #333; color: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 5px; flex-grow: 1; outline: none; }
         .char-btn { padding: 8px 12px; font-size: 0.75rem; cursor: pointer; border-radius: 5px; border: none; font-weight: bold; }
         h1 { font-size: 1.2rem; text-align: center; color: var(--primary); margin: 10px 0 20px; }
+        
+        /* カテゴリ・リスト関連 */
         .category { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
         .category-title { background: var(--secondary); color: var(--primary); padding: 14px 20px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; position: relative; }
-        .cat-copy-btn { background: #444; color: #fff; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; cursor: pointer; z-index: 10; margin-left: 5px; }
+        .cat-copy-btn { background: #444; color: #fff; border: none; border-radius: 4px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer; z-index: 10; margin-left: 5px; transition: 0.2s; }
+        .cat-copy-btn:hover { background: var(--primary); transform: scale(1.1); }
         .category-title::after { content: '▼'; font-size: 0.8rem; transition: 0.3s; color: var(--text); margin-left: auto; }
         .category.active .category-title::after { transform: rotate(180deg); }
         .category-content { display: none; padding: 15px; }
         .category.active .category-content { display: block; }
+
+        /* バッジ・ピース関連 */
         .status-summary { display: flex; gap: 4px; flex-wrap: wrap; pointer-events: none; }
         .count-badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; font-weight: bold; white-space: nowrap; border: 1px solid rgba(255,255,255,0.1); }
         .badge-want { background: #5d4017; color: var(--want); border-color: var(--want); }
@@ -51,9 +56,12 @@
         .want .status-badge, .extra .status-badge { display: block; }
         .want .status-badge { background: var(--want); }
         .extra .status-badge { background: var(--accent); }
+
+        /* 出力エリア */
         .output-area { background: var(--secondary); padding: 15px; border-radius: 12px; margin-top: 20px; border: 1px solid var(--border); }
-        textarea { width: 100%; height: 200px; margin-top: 10px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; box-sizing: border-box; font-size: 0.85rem; resize: none; white-space: pre; }
+        textarea { width: 100%; height: 200px; margin-top: 10px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; box-sizing: border-box; font-size: 0.85rem; resize: none; line-height: 1.4; }
         button.main-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        #copy-status { font-size: 0.8rem; text-align: center; color: #2ecc71; margin-top: 5px; height: 1.2em; }
     </style>
 </head>
 <body>
@@ -63,11 +71,12 @@
         <button class="char-btn" style="background: #27ae60; color: white;" onclick="addChar()">追加</button>
         <button class="char-btn" style="background: #c0392b; color: white;" onclick="deleteChar()">削除</button>
     </div>
-    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.6</span></h1>
+    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.7</span></h1>
     <div id="puzzle-list"></div>
     <div class="output-area">
-        <button class="main-btn" onclick="generateOutput()">全カテゴリ分を生成</button>
-        <textarea id="output" readonly placeholder="📋ボタンまたは生成ボタンを押すとここにテキストが表示されます"></textarea>
+        <button class="main-btn" onclick="generateOutput()">全カテゴリ分を生成 & コピー</button>
+        <div id="copy-status"></div>
+        <textarea id="output" readonly placeholder="📋ボタンを押すとコピーされます"></textarea>
     </div>
 </div>
 <script>
@@ -76,6 +85,7 @@ let currentChar = "";
 const STORAGE_KEY = 'puzzle_v10_data';
 const CHAR_KEY = 'puzzle_last_char_v10';
 let allData = JSON.parse(localStorage.getItem(STORAGE_KEY));
+
 if (!allData) {
     const legacyKeys = ['puzzle_v9_data', 'puzzle_v8_data', 'puzzle_v7_data', 'puzzle_v6_data', 'puzzle_v5_data', 'puzzle_data'];
     for (const key of legacyKeys) {
@@ -84,7 +94,9 @@ if (!allData) {
     }
     if (!allData) allData = { "メイン": { counts: {}, closedCats: {}, closedSets: {} } };
 }
+
 function getSafeId(str) { return btoa(unescape(encodeURIComponent(str))).replace(/[^a-zA-Z0-9]/g, ""); }
+
 async function loadData() {
     try {
         const response = await fetch('data.json');
@@ -95,6 +107,7 @@ async function loadData() {
         init();
     } catch (e) { document.getElementById('puzzle-list').innerText = "data.jsonが見つかりません。"; }
 }
+
 function updateCharList() {
     const select = document.getElementById('char-select');
     select.innerHTML = "";
@@ -105,6 +118,7 @@ function updateCharList() {
         select.appendChild(opt);
     });
 }
+
 function addChar() {
     const name = prompt("キャラクター名:");
     if (name && !allData[name]) {
@@ -112,6 +126,7 @@ function addChar() {
         currentChar = name; saveAll(); updateCharList(); init();
     }
 }
+
 function deleteChar() {
     if (Object.keys(allData).length <= 1) return;
     if (confirm(`「${currentChar}」を削除しますか？`)) { 
@@ -120,7 +135,9 @@ function deleteChar() {
         saveAll(); updateCharList(); init(); 
     }
 }
+
 function switchChar() { currentChar = document.getElementById('char-select').value; saveAll(); init(); }
+
 function init() {
     const listEl = document.getElementById('puzzle-list');
     listEl.innerHTML = "";
@@ -138,7 +155,7 @@ function init() {
             const a = catDiv.classList.toggle('active'); 
             allData[currentChar].closedCats[cat] = !a; saveAll(); 
         };
-        catTitle.innerHTML = `<span>${cat}</span><button class="cat-copy-btn" onclick="generateOutput('${cat}')">📋</button><div id="cat_counter_${catSafeId}" class="status-summary"></div>`;
+        catTitle.innerHTML = `<span>${cat}</span><button class="cat-copy-btn" onclick="generateOutput('${cat}')">📋コピー</button><div id="cat_counter_${catSafeId}" class="status-summary"></div>`;
         const catContent = document.createElement('div');
         catContent.className = 'category-content';
         for (const set in puzzleData[cat]) {
@@ -188,6 +205,7 @@ function init() {
     }
     updateAllCounters();
 }
+
 function updateAllCounters() {
     for (const cat in puzzleData) {
         let catWant = 0, catS5 = 0, catExtra = 0;
@@ -206,6 +224,7 @@ function updateAllCounters() {
         }
     }
 }
+
 function updateCounter(cat, set) {
     const counts = allData[currentChar].counts;
     let want = 0, s5 = 0, extra = 0;
@@ -227,6 +246,7 @@ function updateCounter(cat, set) {
     }
     return { want, s5, extra };
 }
+
 function bulkUpdate(cat, set, val) {
     for (const sub in puzzleData[cat][set]) {
         puzzleData[cat][set][sub].forEach(num => {
@@ -241,6 +261,7 @@ function bulkUpdate(cat, set, val) {
     }
     updateAllCounters(); saveAll();
 }
+
 function updateStatus(cat, set, sub, num, el, forceVal) {
     const id = `${cat}_${set}_${sub}_${num}`;
     const nextVal = (forceVal !== undefined) ? forceVal : ((allData[currentChar].counts[id] || 0) + 1) % 4;
@@ -249,16 +270,20 @@ function updateStatus(cat, set, sub, num, el, forceVal) {
     el.querySelector('.status-badge').innerText = nextVal===1?'求':(nextVal===2?'譲':'');
     updateAllCounters(); saveAll();
 }
+
 function saveAll() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allData)); localStorage.setItem(CHAR_KEY, currentChar); }
+
+// 改行コードを Windows/iOS 等に合わせる強力なフォーマット
 function format(d) { 
     let s = ""; 
     for(const c in d){ 
         for(const st in d[c]) { 
-            s += `・${st}: ${compress(d[c][st])}\n`; 
+            s += `・${st}: ${compress(d[c][st])}\r\n`; 
         }
     } 
-    return s.trim() ? s : "なし\n"; 
+    return s.trim() ? s : "なし\r\n"; 
 }
+
 function generateOutput(targetCat) {
     const counts = allData[currentChar].counts || {};
     let res = { offers: {}, wants: {} };
@@ -274,18 +299,33 @@ function generateOutput(targetCat) {
             }
         }
     }
+    
     const label = targetCat ? `【${currentChar} / ${targetCat}】` : `【${currentChar} 全カテゴリ】`;
-    let txt = label + "\n\n━━━━━━━━━━━━\n\n";
-    txt += "【譲れます】\n" + format(res.offers) + "\n";
-    txt += "【求めてます】\n" + format(res.wants) + "\n";
+    let txt = label + "\r\n\r\n━━━━━━━━━━━━\r\n\r\n";
+    txt += "【譲れます】\r\n" + format(res.offers) + "\r\n";
+    txt += "【求めてます】\r\n" + format(res.wants) + "\r\n";
     txt += "━━━━━━━━━━━━";
+
     const outputEl = document.getElementById('output');
     outputEl.value = txt;
+    
+    // クリップボードへ強制コピー (最新の Clipboard API)
+    navigator.clipboard.writeText(txt).then(() => {
+        const status = document.getElementById('copy-status');
+        status.innerText = "📋 クリップボードにコピーしました！";
+        setTimeout(() => { status.innerText = ""; }, 3000);
+    }).catch(err => {
+        // フォールバック: 従来の手動選択方式
+        outputEl.select();
+        document.execCommand('copy');
+    });
+
     outputEl.scrollIntoView({ behavior: 'smooth' });
-    outputEl.select();
 }
+
 function appendRes(obj, c, s, n) { if(!obj[c]) obj[c]={}; if(!obj[c][s]) obj[c][s]=[]; obj[c][s].push(n); }
 function compress(n) { if(!n.length) return ""; n.sort((a,b)=>a-b); let r=[], s=n[0], e=n[0]; for(let i=1;i<=n.length;i++){ if(i<n.length&&n[i]===e+1) e=n[i]; else { r.push(s===e?s:`${s}~${e}`); if(i<n.length) s=e=n[i]; } } return r.join(','); }
+
 loadData();
 </script>
 </body>
