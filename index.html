@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ホワサバ パズル管理 v10.2</title>
+    <title>ホワサバ パズル管理 v10.3</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
@@ -21,9 +21,11 @@
         h1 { font-size: 1.2rem; text-align: center; color: var(--primary); margin: 10px 0 20px; }
 
         .category { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-        .category-title { background: var(--secondary); color: var(--primary); padding: 14px 20px; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .category-title::after { content: '▼'; font-size: 0.8rem; transition: 0.3s; color: var(--text); }
+        .category-title { background: var(--secondary); color: var(--primary); padding: 14px 20px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 10px; position: relative; }
+        /* 矢印を右端に寄せるための調整 */
+        .category-title::after { content: '▼'; font-size: 0.8rem; transition: 0.3s; color: var(--text); margin-left: auto; }
         .category.active .category-title::after { transform: rotate(180deg); }
+        
         .category-content { display: none; padding: 15px; }
         .category.active .category-content { display: block; }
 
@@ -32,6 +34,7 @@
         .set-title-area { flex-grow: 1; padding: 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; overflow: hidden; }
         .set-name { font-weight: bold; font-size: 0.95rem; white-space: nowrap; flex-shrink: 0; }
         
+        /* サマリー共通スタイル */
         .status-summary { display: flex; gap: 4px; flex-wrap: wrap; pointer-events: none; }
         .count-badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; font-weight: bold; white-space: nowrap; border: 1px solid rgba(255,255,255,0.1); }
         .badge-want { background: #5d4017; color: var(--want); border-color: var(--want); }
@@ -76,7 +79,7 @@
         <button class="char-btn" style="background: #c0392b; color: white;" onclick="deleteChar()">削除</button>
     </div>
 
-    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.2</span></h1>
+    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.3</span></h1>
     <div id="puzzle-list"></div>
 
     <div class="output-area">
@@ -103,8 +106,8 @@ if (!allData) {
 }
 
 // 安全なID生成
-function getSafeId(cat, set) {
-    return btoa(unescape(encodeURIComponent(cat + set))).replace(/[^a-zA-Z0-9]/g, "");
+function getSafeId(str) {
+    return btoa(unescape(encodeURIComponent(str))).replace(/[^a-zA-Z0-9]/g, "");
 }
 
 async function loadData() {
@@ -159,22 +162,25 @@ function init() {
     const closedSets = allData[currentChar].closedSets || {};
 
     for (const cat in puzzleData) {
+        const catSafeId = getSafeId(cat);
         const catDiv = document.createElement('div');
         catDiv.className = 'category' + (closedCats[cat] ? '' : ' active');
+        
         const catTitle = document.createElement('div');
         catTitle.className = 'category-title';
-        catTitle.innerText = cat;
         catTitle.onclick = () => { 
             const a = catDiv.classList.toggle('active'); 
             allData[currentChar].closedCats[cat] = !a; saveAll(); 
         };
+        // カテゴリ用のサマリー表示場所を追加
+        catTitle.innerHTML = `<span>${cat}</span><div id="cat_counter_${catSafeId}" class="status-summary"></div>`;
 
         const catContent = document.createElement('div');
         catContent.className = 'category-content';
 
         for (const set in puzzleData[cat]) {
             const setKey = `${cat}_${set}`;
-            const safeId = getSafeId(cat, set);
+            const setSafeId = getSafeId(cat + set);
             const setDiv = document.createElement('div');
             setDiv.className = 'set-container' + (closedSets[setKey] ? '' : ' active');
 
@@ -187,7 +193,7 @@ function init() {
                 const a = setDiv.classList.toggle('active'); 
                 allData[currentChar].closedSets[setKey] = !a; saveAll(); 
             };
-            titleArea.innerHTML = `<span class="set-name">${set}</span><div id="counter_${safeId}" class="status-summary"></div>`;
+            titleArea.innerHTML = `<span class="set-name">${set}</span><div id="counter_${setSafeId}" class="status-summary"></div>`;
 
             const btnArea = document.createElement('div');
             btnArea.className = 'bulk-btns';
@@ -227,41 +233,51 @@ function init() {
         }
         catDiv.appendChild(catTitle); catDiv.appendChild(catContent); listEl.appendChild(catDiv);
     }
-    
-    // 全体の描画が終わった後に、全てのカウンターを一気に更新
     updateAllCounters();
 }
 
 function updateAllCounters() {
     for (const cat in puzzleData) {
+        let catWant = 0, catS5 = 0, catExtra = 0;
         for (const set in puzzleData[cat]) {
-            updateCounter(cat, set);
+            const res = updateCounter(cat, set);
+            catWant += res.want; catS5 += res.s5; catExtra += res.extra;
+        }
+        // カテゴリ全体の更新
+        const catSafeId = getSafeId(cat);
+        const el = document.getElementById(`cat_counter_${catSafeId}`);
+        if (el) {
+            let html = "";
+            if (catWant > 0) html += `<span class="count-badge badge-want">求:${catWant}</span>`;
+            if (catS5 > 0) html += `<span class="count-badge badge-s5">S5要:${catS5}</span>`;
+            if (catExtra > 0) html += `<span class="count-badge badge-extra">譲:${catExtra}</span>`;
+            el.innerHTML = html;
         }
     }
 }
 
 function updateCounter(cat, set) {
     const counts = allData[currentChar].counts;
-    let want = 0, s5missing = 0, extra = 0;
+    let want = 0, s5 = 0, extra = 0;
     for (const sub in puzzleData[cat][set]) {
         puzzleData[cat][set][sub].forEach(num => {
             const val = counts[`${cat}_${set}_${sub}_${num}`] || 0;
             if (val === 1) {
-                if (sub === "S5") s5missing++;
-                else want++;
+                if (sub === "S5") s5++; else want++;
             }
             if (val === 2) extra++;
         });
     }
-    const safeId = getSafeId(cat, set);
-    const el = document.getElementById(`counter_${safeId}`);
+    const setSafeId = getSafeId(cat + set);
+    const el = document.getElementById(`counter_${setSafeId}`);
     if (el) {
         let html = "";
         if (want > 0) html += `<span class="count-badge badge-want">求:${want}</span>`;
-        if (s5missing > 0) html += `<span class="count-badge badge-s5">S5要:${s5missing}</span>`;
+        if (s5 > 0) html += `<span class="count-badge badge-s5">S5要:${s5}</span>`;
         if (extra > 0) html += `<span class="count-badge badge-extra">譲:${extra}</span>`;
         el.innerHTML = html;
     }
+    return { want, s5, extra };
 }
 
 function bulkUpdate(cat, set, val) {
@@ -276,7 +292,7 @@ function bulkUpdate(cat, set, val) {
             }
         });
     }
-    updateCounter(cat, set); saveAll();
+    updateAllCounters(); saveAll();
 }
 
 function updateStatus(cat, set, sub, num, el, forceVal) {
@@ -285,7 +301,7 @@ function updateStatus(cat, set, sub, num, el, forceVal) {
     allData[currentChar].counts[id] = nextVal;
     el.className = `piece-item ${nextVal===1?'want':''} ${nextVal===2?'extra':''} ${nextVal===3?'owned':''}`;
     el.querySelector('.status-badge').innerText = nextVal===1?'求':(nextVal===2?'譲':'');
-    updateCounter(cat, set); saveAll();
+    updateAllCounters(); saveAll();
 }
 
 function saveAll() { 
