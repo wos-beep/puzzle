@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ホワサバ パズル管理 v10.5</title>
+    <title>ホワサバ パズル管理 v10.6</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
@@ -11,91 +11,71 @@
         }
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); line-height: 1.5; }
         .container { max-width: 800px; margin: 0 auto; background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
         .version-tag { font-size: 0.7rem; color: #666; vertical-align: middle; margin-left: 8px; font-weight: normal; }
-
         .char-selector { background: #252525; padding: 12px; border-radius: 10px; margin-bottom: 20px; display: flex; gap: 8px; align-items: center; border: 1px solid var(--border); }
         select { background: #333; color: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 5px; flex-grow: 1; outline: none; }
         .char-btn { padding: 8px 12px; font-size: 0.75rem; cursor: pointer; border-radius: 5px; border: none; font-weight: bold; }
-
         h1 { font-size: 1.2rem; text-align: center; color: var(--primary); margin: 10px 0 20px; }
-
         .category { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
         .category-title { background: var(--secondary); color: var(--primary); padding: 14px 20px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; position: relative; }
-        
         .cat-copy-btn { background: #444; color: #fff; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; cursor: pointer; z-index: 10; margin-left: 5px; }
-        .cat-copy-btn:hover { background: var(--primary); }
-
         .category-title::after { content: '▼'; font-size: 0.8rem; transition: 0.3s; color: var(--text); margin-left: auto; }
         .category.active .category-title::after { transform: rotate(180deg); }
         .category-content { display: none; padding: 15px; }
         .category.active .category-content { display: block; }
-
         .status-summary { display: flex; gap: 4px; flex-wrap: wrap; pointer-events: none; }
         .count-badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; font-weight: bold; white-space: nowrap; border: 1px solid rgba(255,255,255,0.1); }
         .badge-want { background: #5d4017; color: var(--want); border-color: var(--want); }
         .badge-extra { background: #4a1a1a; color: #ff7675; border-color: var(--accent); }
         .badge-s5 { background: #444; color: #bbb; border-color: #666; }
-
         .set-container { margin-bottom: 10px; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
         .set-header { background: #252525; display: flex; align-items: center; padding-right: 10px; border-left: 4px solid var(--primary); }
         .set-title-area { flex-grow: 1; padding: 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; overflow: hidden; }
         .set-name { font-weight: bold; font-size: 0.95rem; white-space: nowrap; flex-shrink: 0; }
-
         .bulk-btns { display: flex; gap: 4px; }
         .bulk-btn { font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; color: white; opacity: 0.8; }
         .btn-all-owned { background: var(--primary); }
         .btn-all-want { background: var(--want); }
         .btn-reset { background: #555; }
-
         .set-content { display: none; padding: 10px; background: #1e1e1e; }
         .set-container.active .set-content { display: block; }
-
         .rarity-group { margin-bottom: 10px; padding: 8px; background: var(--rarity-bg); border-radius: 6px; }
         .stars { color: #f1c40f; font-size: 0.75rem; margin-bottom: 5px; display: block; }
         .piece-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 8px; }
         .piece-item { display: flex; flex-direction: column; align-items: center; padding: 6px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; background: #2c2c2c; transition: 0.1s; position: relative; }
-        
         .piece-item.want { background: #5d4017; border-color: var(--want); }
         .piece-item.extra { background: #4a1a1a; border-color: var(--accent); }
         .piece-item.owned { background: #1a3a5a; border-color: var(--primary); }
-        
         .piece-num { font-size: 0.85rem; font-weight: bold; }
         .status-badge { font-size: 0.5rem; color: white; padding: 1px 3px; border-radius: 3px; margin-top: 3px; display: none; font-weight: normal; }
         .want .status-badge, .extra .status-badge { display: block; }
         .want .status-badge { background: var(--want); }
         .extra .status-badge { background: var(--accent); }
-
         .output-area { background: var(--secondary); padding: 15px; border-radius: 12px; margin-top: 20px; border: 1px solid var(--border); }
-        textarea { width: 100%; height: 150px; margin-top: 10px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; box-sizing: border-box; font-size: 0.85rem; resize: none; }
+        textarea { width: 100%; height: 200px; margin-top: 10px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; box-sizing: border-box; font-size: 0.85rem; resize: none; white-space: pre; }
         button.main-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-
 <div class="container">
     <div class="char-selector">
         <select id="char-select" onchange="switchChar()"></select>
         <button class="char-btn" style="background: #27ae60; color: white;" onclick="addChar()">追加</button>
         <button class="char-btn" style="background: #c0392b; color: white;" onclick="deleteChar()">削除</button>
     </div>
-
-    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.5</span></h1>
+    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.6</span></h1>
     <div id="puzzle-list"></div>
-
     <div class="output-area">
         <button class="main-btn" onclick="generateOutput()">全カテゴリ分を生成</button>
         <textarea id="output" readonly placeholder="📋ボタンまたは生成ボタンを押すとここにテキストが表示されます"></textarea>
     </div>
 </div>
-
 <script>
 let puzzleData = {};
 let currentChar = "";
 const STORAGE_KEY = 'puzzle_v10_data';
 const CHAR_KEY = 'puzzle_last_char_v10';
 let allData = JSON.parse(localStorage.getItem(STORAGE_KEY));
-
 if (!allData) {
     const legacyKeys = ['puzzle_v9_data', 'puzzle_v8_data', 'puzzle_v7_data', 'puzzle_v6_data', 'puzzle_v5_data', 'puzzle_data'];
     for (const key of legacyKeys) {
@@ -104,9 +84,7 @@ if (!allData) {
     }
     if (!allData) allData = { "メイン": { counts: {}, closedCats: {}, closedSets: {} } };
 }
-
 function getSafeId(str) { return btoa(unescape(encodeURIComponent(str))).replace(/[^a-zA-Z0-9]/g, ""); }
-
 async function loadData() {
     try {
         const response = await fetch('data.json');
@@ -117,7 +95,6 @@ async function loadData() {
         init();
     } catch (e) { document.getElementById('puzzle-list').innerText = "data.jsonが見つかりません。"; }
 }
-
 function updateCharList() {
     const select = document.getElementById('char-select');
     select.innerHTML = "";
@@ -128,7 +105,6 @@ function updateCharList() {
         select.appendChild(opt);
     });
 }
-
 function addChar() {
     const name = prompt("キャラクター名:");
     if (name && !allData[name]) {
@@ -136,7 +112,6 @@ function addChar() {
         currentChar = name; saveAll(); updateCharList(); init();
     }
 }
-
 function deleteChar() {
     if (Object.keys(allData).length <= 1) return;
     if (confirm(`「${currentChar}」を削除しますか？`)) { 
@@ -145,16 +120,13 @@ function deleteChar() {
         saveAll(); updateCharList(); init(); 
     }
 }
-
 function switchChar() { currentChar = document.getElementById('char-select').value; saveAll(); init(); }
-
 function init() {
     const listEl = document.getElementById('puzzle-list');
     listEl.innerHTML = "";
     const counts = allData[currentChar].counts || {};
     const closedCats = allData[currentChar].closedCats || {};
     const closedSets = allData[currentChar].closedSets || {};
-
     for (const cat in puzzleData) {
         const catSafeId = getSafeId(cat);
         const catDiv = document.createElement('div');
@@ -167,16 +139,13 @@ function init() {
             allData[currentChar].closedCats[cat] = !a; saveAll(); 
         };
         catTitle.innerHTML = `<span>${cat}</span><button class="cat-copy-btn" onclick="generateOutput('${cat}')">📋</button><div id="cat_counter_${catSafeId}" class="status-summary"></div>`;
-
         const catContent = document.createElement('div');
         catContent.className = 'category-content';
-
         for (const set in puzzleData[cat]) {
             const setKey = `${cat}_${set}`;
             const setSafeId = getSafeId(cat + set);
             const setDiv = document.createElement('div');
             setDiv.className = 'set-container' + (closedSets[setKey] ? '' : ' active');
-
             const setHeader = document.createElement('div');
             setHeader.className = 'set-header';
             const titleArea = document.createElement('div');
@@ -186,15 +155,9 @@ function init() {
                 allData[currentChar].closedSets[setKey] = !a; saveAll(); 
             };
             titleArea.innerHTML = `<span class="set-name">${set}</span><div id="counter_${setSafeId}" class="status-summary"></div>`;
-
             const btnArea = document.createElement('div');
             btnArea.className = 'bulk-btns';
-            btnArea.innerHTML = `
-                <button class="bulk-btn btn-all-owned" onclick="bulkUpdate('${cat}','${set}',3)">済</button>
-                <button class="bulk-btn btn-all-want" onclick="bulkUpdate('${cat}','${set}',1)">求</button>
-                <button class="bulk-btn btn-reset" onclick="bulkUpdate('${cat}','${set}',0)">×</button>
-            `;
-
+            btnArea.innerHTML = `<button class="bulk-btn btn-all-owned" onclick="bulkUpdate('${cat}','${set}',3)">済</button><button class="bulk-btn btn-all-want" onclick="bulkUpdate('${cat}','${set}',1)">求</button><button class="bulk-btn btn-reset" onclick="bulkUpdate('${cat}','${set}',0)">×</button>`;
             const setContent = document.createElement('div');
             setContent.className = 'set-content';
             for (const sub in puzzleData[cat][set]) {
@@ -203,7 +166,6 @@ function init() {
                 rarDiv.innerHTML = `<span class="stars">${sub.replace('S','⭐')}</span>`;
                 const pieceList = document.createElement('div');
                 pieceList.className = 'piece-list';
-
                 puzzleData[cat][set][sub].forEach(num => {
                     const id = `${cat}_${set}_${sub}_${num}`;
                     const val = counts[id] || 0;
@@ -226,7 +188,6 @@ function init() {
     }
     updateAllCounters();
 }
-
 function updateAllCounters() {
     for (const cat in puzzleData) {
         let catWant = 0, catS5 = 0, catExtra = 0;
@@ -245,7 +206,6 @@ function updateAllCounters() {
         }
     }
 }
-
 function updateCounter(cat, set) {
     const counts = allData[currentChar].counts;
     let want = 0, s5 = 0, extra = 0;
@@ -267,7 +227,6 @@ function updateCounter(cat, set) {
     }
     return { want, s5, extra };
 }
-
 function bulkUpdate(cat, set, val) {
     for (const sub in puzzleData[cat][set]) {
         puzzleData[cat][set][sub].forEach(num => {
@@ -282,7 +241,6 @@ function bulkUpdate(cat, set, val) {
     }
     updateAllCounters(); saveAll();
 }
-
 function updateStatus(cat, set, sub, num, el, forceVal) {
     const id = `${cat}_${set}_${sub}_${num}`;
     const nextVal = (forceVal !== undefined) ? forceVal : ((allData[currentChar].counts[id] || 0) + 1) % 4;
@@ -291,9 +249,7 @@ function updateStatus(cat, set, sub, num, el, forceVal) {
     el.querySelector('.status-badge').innerText = nextVal===1?'求':(nextVal===2?'譲':'');
     updateAllCounters(); saveAll();
 }
-
 function saveAll() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allData)); localStorage.setItem(CHAR_KEY, currentChar); }
-
 function format(d) { 
     let s = ""; 
     for(const c in d){ 
@@ -303,7 +259,6 @@ function format(d) {
     } 
     return s.trim() ? s : "なし\n"; 
 }
-
 function generateOutput(targetCat) {
     const counts = allData[currentChar].counts || {};
     let res = { offers: {}, wants: {} };
@@ -319,21 +274,18 @@ function generateOutput(targetCat) {
             }
         }
     }
-    
     const label = targetCat ? `【${currentChar} / ${targetCat}】` : `【${currentChar} 全カテゴリ】`;
-    let txt = label + "\n\n━━━━━━━━━━━━\n";
+    let txt = label + "\n\n━━━━━━━━━━━━\n\n";
     txt += "【譲れます】\n" + format(res.offers) + "\n";
-    txt += "【求めてます】\n" + format(res.wants) + "━━━━━━━━━━━━";
-
+    txt += "【求めてます】\n" + format(res.wants) + "\n";
+    txt += "━━━━━━━━━━━━";
     const outputEl = document.getElementById('output');
     outputEl.value = txt;
     outputEl.scrollIntoView({ behavior: 'smooth' });
-    outputEl.select(); // 自動で全選択
+    outputEl.select();
 }
-
 function appendRes(obj, c, s, n) { if(!obj[c]) obj[c]={}; if(!obj[c][s]) obj[c][s]=[]; obj[c][s].push(n); }
 function compress(n) { if(!n.length) return ""; n.sort((a,b)=>a-b); let r=[], s=n[0], e=n[0]; for(let i=1;i<=n.length;i++){ if(i<n.length&&n[i]===e+1) e=n[i]; else { r.push(s===e?s:`${s}~${e}`); if(i<n.length) s=e=n[i]; } } return r.join(','); }
-
 loadData();
 </script>
 </body>
