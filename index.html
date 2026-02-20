@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ホワサバ パズル管理 v10.3</title>
+    <title>ホワサバ パズル管理 v10.4</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
@@ -21,25 +21,29 @@
         h1 { font-size: 1.2rem; text-align: center; color: var(--primary); margin: 10px 0 20px; }
 
         .category { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-        .category-title { background: var(--secondary); color: var(--primary); padding: 14px 20px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 10px; position: relative; }
-        /* 矢印を右端に寄せるための調整 */
+        .category-title { background: var(--secondary); color: var(--primary); padding: 14px 20px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; position: relative; }
+        
+        /* カテゴリ用生成ボタン */
+        .cat-copy-btn { background: #444; color: #fff; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; cursor: pointer; z-index: 10; margin-left: 5px; }
+        .cat-copy-btn:hover { background: var(--primary); }
+
         .category-title::after { content: '▼'; font-size: 0.8rem; transition: 0.3s; color: var(--text); margin-left: auto; }
         .category.active .category-title::after { transform: rotate(180deg); }
         
         .category-content { display: none; padding: 15px; }
         .category.active .category-content { display: block; }
 
-        .set-container { margin-bottom: 10px; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
-        .set-header { background: #252525; display: flex; align-items: center; padding-right: 10px; border-left: 4px solid var(--primary); }
-        .set-title-area { flex-grow: 1; padding: 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; overflow: hidden; }
-        .set-name { font-weight: bold; font-size: 0.95rem; white-space: nowrap; flex-shrink: 0; }
-        
         /* サマリー共通スタイル */
         .status-summary { display: flex; gap: 4px; flex-wrap: wrap; pointer-events: none; }
         .count-badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; font-weight: bold; white-space: nowrap; border: 1px solid rgba(255,255,255,0.1); }
         .badge-want { background: #5d4017; color: var(--want); border-color: var(--want); }
         .badge-extra { background: #4a1a1a; color: #ff7675; border-color: var(--accent); }
         .badge-s5 { background: #444; color: #bbb; border-color: #666; }
+
+        .set-container { margin-bottom: 10px; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
+        .set-header { background: #252525; display: flex; align-items: center; padding-right: 10px; border-left: 4px solid var(--primary); }
+        .set-title-area { flex-grow: 1; padding: 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; overflow: hidden; }
+        .set-name { font-weight: bold; font-size: 0.95rem; white-space: nowrap; flex-shrink: 0; }
 
         .bulk-btns { display: flex; gap: 4px; }
         .bulk-btn { font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; color: white; opacity: 0.8; }
@@ -79,12 +83,12 @@
         <button class="char-btn" style="background: #c0392b; color: white;" onclick="deleteChar()">削除</button>
     </div>
 
-    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.3</span></h1>
+    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.4</span></h1>
     <div id="puzzle-list"></div>
 
     <div class="output-area">
-        <button class="main-btn" onclick="generateOutput()">共有用テキストを生成</button>
-        <textarea id="output" readonly></textarea>
+        <button class="main-btn" onclick="generateOutput()">全カテゴリ分を生成</button>
+        <textarea id="output" readonly placeholder="ボタンを押すとここにテキストが生成されます"></textarea>
     </div>
 </div>
 
@@ -105,10 +109,7 @@ if (!allData) {
     if (!allData) allData = { "メイン": { counts: {}, closedCats: {}, closedSets: {} } };
 }
 
-// 安全なID生成
-function getSafeId(str) {
-    return btoa(unescape(encodeURIComponent(str))).replace(/[^a-zA-Z0-9]/g, "");
-}
+function getSafeId(str) { return btoa(unescape(encodeURIComponent(str))).replace(/[^a-zA-Z0-9]/g, ""); }
 
 async function loadData() {
     try {
@@ -149,10 +150,7 @@ function deleteChar() {
     }
 }
 
-function switchChar() { 
-    currentChar = document.getElementById('char-select').value; 
-    saveAll(); init(); 
-}
+function switchChar() { currentChar = document.getElementById('char-select').value; saveAll(); init(); }
 
 function init() {
     const listEl = document.getElementById('puzzle-list');
@@ -168,12 +166,20 @@ function init() {
         
         const catTitle = document.createElement('div');
         catTitle.className = 'category-title';
-        catTitle.onclick = () => { 
+        
+        // カテゴリクリックで開閉（ボタン部分は除外）
+        catTitle.onclick = (e) => {
+            if(e.target.tagName === 'BUTTON') return;
             const a = catDiv.classList.toggle('active'); 
             allData[currentChar].closedCats[cat] = !a; saveAll(); 
         };
-        // カテゴリ用のサマリー表示場所を追加
-        catTitle.innerHTML = `<span>${cat}</span><div id="cat_counter_${catSafeId}" class="status-summary"></div>`;
+
+        // タイトル + コピーボタン + サマリー
+        catTitle.innerHTML = `
+            <span>${cat}</span>
+            <button class="cat-copy-btn" onclick="generateOutput('${cat}')">📋</button>
+            <div id="cat_counter_${catSafeId}" class="status-summary"></div>
+        `;
 
         const catContent = document.createElement('div');
         catContent.className = 'category-content';
@@ -243,7 +249,6 @@ function updateAllCounters() {
             const res = updateCounter(cat, set);
             catWant += res.want; catS5 += res.s5; catExtra += res.extra;
         }
-        // カテゴリ全体の更新
         const catSafeId = getSafeId(cat);
         const el = document.getElementById(`cat_counter_${catSafeId}`);
         if (el) {
@@ -262,9 +267,7 @@ function updateCounter(cat, set) {
     for (const sub in puzzleData[cat][set]) {
         puzzleData[cat][set][sub].forEach(num => {
             const val = counts[`${cat}_${set}_${sub}_${num}`] || 0;
-            if (val === 1) {
-                if (sub === "S5") s5++; else want++;
-            }
+            if (val === 1) { if (sub === "S5") s5++; else want++; }
             if (val === 2) extra++;
         });
     }
@@ -304,15 +307,17 @@ function updateStatus(cat, set, sub, num, el, forceVal) {
     updateAllCounters(); saveAll();
 }
 
-function saveAll() { 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(allData)); 
-    localStorage.setItem(CHAR_KEY, currentChar); 
-}
+function saveAll() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allData)); localStorage.setItem(CHAR_KEY, currentChar); }
 
-function generateOutput() {
+// カテゴリ指定対応の生成関数
+function generateOutput(targetCat) {
     const counts = allData[currentChar].counts || {};
     let res = { offers: {}, wants: {} };
+    
     for (const cat in puzzleData) {
+        // カテゴリ指定がある場合は、それ以外をスキップ
+        if (targetCat && cat !== targetCat) continue;
+        
         for (const set in puzzleData[cat]) {
             for (const sub in puzzleData[cat][set]) {
                 puzzleData[cat][set][sub].forEach(num => {
@@ -323,8 +328,13 @@ function generateOutput() {
             }
         }
     }
-    let txt = `【${currentChar}のパズル状況】\n\n【譲れます】\n${format(res.offers)}\n【求めてます】\n${format(res.wants)}`;
+    
+    const label = targetCat ? `【${currentChar} / ${targetCat}】` : `【${currentChar}のパズル状況】`;
+    let txt = `${label}\n\n【譲れます】\n${format(res.offers)}\n【求めてます】\n${format(res.wants)}`;
     document.getElementById('output').value = txt.trim().replace(/\r\n/g, "\n");
+    
+    // 生成したことを知らせるために最下部へスクロール
+    document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
 }
 
 function appendRes(obj, c, s, n) { if(!obj[c]) obj[c]={}; if(!obj[c][s]) obj[c][s]=[]; obj[c][s].push(n); }
