@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ホワサバ パズル管理 (Multi-Char)</title>
+    <title>ホワサバ パズル管理 (Multi-Char & Memory)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
@@ -19,19 +19,18 @@
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); }
         .container { max-width: 800px; margin: 0 auto; background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
-        /* キャラクター選択エリア */
         .char-selector { 
             background: #252525; padding: 15px; border-radius: 10px; margin-bottom: 20px; 
             border: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
         }
-        select { background: #333; color: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 5px; flex-grow: 1; }
+        select { background: #333; color: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 5px; flex-grow: 1; outline: none; }
         .char-btn { padding: 8px 12px; font-size: 0.8rem; cursor: pointer; border-radius: 5px; border: none; font-weight: bold; }
 
         h1 { font-size: 1.2rem; text-align: center; color: var(--primary); margin: 10px 0 20px; }
 
         .category { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
         .category-title { background: var(--secondary); color: var(--primary); padding: 14px 20px; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; }
-        .category-title::after { content: '▼'; font-size: 0.8rem; transition: 0.3s; }
+        .category-title::after { content: '▼'; font-size: 0.8rem; transition: 0.3s; color: var(--text); }
         .category.active .category-title::after { transform: rotate(180deg); }
         .category-content { display: none; padding: 15px; }
         .category.active .category-content { display: block; }
@@ -42,15 +41,17 @@
         .stars { color: #f1c40f; font-size: 0.8rem; margin-bottom: 5px; display: block; }
         
         .piece-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 8px; }
-        .piece-item { display: flex; flex-direction: column; align-items: center; padding: 8px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: #2c2c2c; }
+        .piece-item { display: flex; flex-direction: column; align-items: center; padding: 8px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: #2c2c2c; transition: 0.2s; }
+        .piece-item:hover { background: #383838; }
         .piece-item.owned { background: #1a3a5a; border-color: var(--primary); }
         .piece-item.extra { background: #4a1a1a; border-color: var(--accent); }
-        .status-badge { font-size: 0.5rem; background: var(--accent); padding: 1px 3px; border-radius: 3px; margin-top: 3px; display: none; }
+        .status-badge { font-size: 0.5rem; background: var(--accent); color: white; padding: 1px 3px; border-radius: 3px; margin-top: 3px; display: none; }
         .extra .status-badge { display: block; }
 
         .controls, .backup-area { background: var(--secondary); padding: 15px; border-radius: 12px; margin-top: 20px; border: 1px solid var(--border); }
-        textarea { width: 100%; height: 80px; margin-top: 10px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 5px; }
+        textarea { width: 100%; height: 80px; margin-top: 10px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; box-sizing: border-box; resize: vertical; }
+        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
+        button:hover { filter: brightness(1.1); }
     </style>
 </head>
 <body>
@@ -71,29 +72,30 @@
     </div>
 
     <div class="backup-area">
-        <button style="background: #555;" onclick="exportData()">バックアップ書き出し</button>
-        <textarea id="backup-text" placeholder="ここに貼り付けて読み込み"></textarea>
-        <button style="background: #1e7e46;" onclick="importData()">読み込み実行</button>
+        <p style="font-size: 0.75rem; color: #888; margin-bottom: 5px;">一括バックアップ / インポート</p>
+        <button style="background: #555; font-size: 0.8rem;" onclick="exportData()">全データ書き出し</button>
+        <textarea id="backup-text" placeholder="ここにデータを貼り付けて読み込み"></textarea>
+        <button style="background: #1e7e46; font-size: 0.8rem;" onclick="importData()">データを復元する</button>
     </div>
 </div>
 
 <script>
 let puzzleData = {};
 let currentChar = "";
-let allData = JSON.parse(localStorage.getItem('puzzle_all_chars')) || { "デフォルト": {} };
+// allData 構造: { "キャラ名": { counts: {}, closed: { "カテゴリ名": true/false } } }
+let allData = JSON.parse(localStorage.getItem('puzzle_v4_data')) || { "デフォルト": { counts: {}, closed: {} } };
 
 async function loadData() {
     try {
         const response = await fetch('data.json');
         puzzleData = await response.json();
         
-        // 初回起動時のキャラクター設定
-        const lastChar = localStorage.getItem('puzzle_last_char');
+        const lastChar = localStorage.getItem('puzzle_last_char_v4');
         currentChar = (lastChar && allData[lastChar]) ? lastChar : Object.keys(allData)[0];
         
         updateCharList();
         init();
-    } catch (e) { document.getElementById('puzzle-list').innerText = "data.jsonが見つかりません。"; }
+    } catch (e) { document.getElementById('puzzle-list').innerText = "data.jsonの読み込みに失敗しました。"; }
 }
 
 function updateCharList() {
@@ -109,19 +111,21 @@ function updateCharList() {
 }
 
 function addChar() {
-    const name = prompt("新しいキャラクター名を入力してください:");
+    const name = prompt("キャラクター名を入力:");
     if (name && !allData[name]) {
-        allData[name] = {};
+        allData[name] = { counts: {}, closed: {} };
+        // 初回デフォルトの閉じ設定
+        ["復活の炎", "英雄の歌", "世界探究"].forEach(c => allData[name].closed[c] = true);
         currentChar = name;
         saveAll();
         updateCharList();
         init();
-    } else if (allData[name]) { alert("その名前は既に存在します。"); }
+    } else if (allData[name]) { alert("その名前は既にあります。"); }
 }
 
 function deleteChar() {
-    if (Object.keys(allData).length <= 1) return alert("最後のキャラクターは削除できません。");
-    if (confirm(`「${currentChar}」のデータを削除しますか？`)) {
+    if (Object.keys(allData).length <= 1) return alert("最後のキャラは削除できません。");
+    if (confirm(`「${currentChar}」を削除しますか？`)) {
         delete allData[currentChar];
         currentChar = Object.keys(allData)[0];
         saveAll();
@@ -132,20 +136,42 @@ function deleteChar() {
 
 function switchChar() {
     currentChar = document.getElementById('char-select').value;
-    localStorage.setItem('puzzle_last_char', currentChar);
+    localStorage.setItem('puzzle_last_char_v4', currentChar);
     init();
 }
 
 function init() {
     const listEl = document.getElementById('puzzle-list');
     listEl.innerHTML = "";
-    const closedCategories = ["復活の炎", "英雄の歌", "世界探究"];
-    const counts = allData[currentChar] || {};
+    
+    const charData = allData[currentChar];
+    const counts = charData.counts || {};
+    const closed = charData.closed || {};
 
     for (const cat in puzzleData) {
         const catDiv = document.createElement('div');
-        catDiv.className = 'category' + (!closedCategories.includes(cat) ? ' active' : '');
-        catDiv.innerHTML = `<div class="category-title" onclick="this.parentElement.classList.toggle('active')">${cat}</div>`;
+        catDiv.className = 'category';
+        
+        // 保存された状態を確認。データがない場合はデフォルトロジック
+        let isClosed = false;
+        if (closed[cat] !== undefined) {
+            isClosed = closed[cat];
+        } else {
+            isClosed = ["復活の炎", "英雄の歌", "世界探究"].includes(cat);
+        }
+
+        if (!isClosed) catDiv.classList.add('active');
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'category-title';
+        titleEl.innerText = cat;
+        titleEl.onclick = () => {
+            const isActive = catDiv.classList.toggle('active');
+            // 状態を保存（開いている = closed: false）
+            if (!allData[currentChar].closed) allData[currentChar].closed = {};
+            allData[currentChar].closed[cat] = !isActive;
+            saveAll();
+        };
         
         const contentDiv = document.createElement('div');
         contentDiv.className = 'category-content';
@@ -177,26 +203,28 @@ function init() {
             }
             contentDiv.appendChild(setDiv);
         }
+        catDiv.appendChild(titleEl);
         catDiv.appendChild(contentDiv);
         listEl.appendChild(catDiv);
     }
 }
 
 function updateStatus(id, el, nextVal) {
-    if (!allData[currentChar]) allData[currentChar] = {};
-    if (typeof nextVal === 'undefined') nextVal = ((allData[currentChar][id] || 0) + 1) % 3;
-    allData[currentChar][id] = nextVal;
+    if (typeof nextVal === 'undefined') {
+        nextVal = ((allData[currentChar].counts[id] || 0) + 1) % 3;
+    }
+    allData[currentChar].counts[id] = nextVal;
     el.className = `piece-item ${nextVal >= 1 ? 'owned' : ''} ${nextVal === 2 ? 'extra' : ''}`;
     saveAll();
 }
 
 function saveAll() {
-    localStorage.setItem('puzzle_all_chars', JSON.stringify(allData));
-    localStorage.setItem('puzzle_last_char', currentChar);
+    localStorage.setItem('puzzle_v4_data', JSON.stringify(allData));
+    localStorage.setItem('puzzle_last_char_v4', currentChar);
 }
 
 function generateOutput() {
-    const counts = allData[currentChar] || {};
+    const counts = allData[currentChar].counts || {};
     let res = { offers: {}, wants: {} };
     for (const cat in puzzleData) {
         for (const set in puzzleData[cat]) {
@@ -216,15 +244,17 @@ function appendRes(obj, cat, set, num) { if (!obj[cat]) obj[cat] = {}; if (!obj[
 function format(data) { let s = ""; for (const cat in data) { s += `${cat}\n`; for (const set in data[cat]) s += ` - ${set} ${compress(data[cat][set])}\n`; } return s || "なし\n"; }
 function compress(nums) { if (!nums.length) return ""; nums.sort((a, b) => a - b); let r = [], s = nums[0], e = nums[0]; for (let i = 1; i <= nums.length; i++) { if (i < nums.length && nums[i] === e + 1) e = nums[i]; else { r.push(s === e ? s : `${s}~${e}`); if (i < nums.length) s = e = nums[i]; } } return r.join(', '); }
 
-function exportData() { document.getElementById('backup-text').value = JSON.stringify(allData); alert("全キャラ分のデータを書き出しました。"); }
+function exportData() { document.getElementById('backup-text').value = JSON.stringify(allData); alert("全データを書き出しました。"); }
 function importData() {
     try {
-        allData = JSON.parse(document.getElementById('backup-text').value);
-        saveAll();
-        currentChar = Object.keys(allData)[0];
-        updateCharList();
-        init();
-        alert("全データを復元しました。");
+        const imported = JSON.parse(document.getElementById('backup-text').value);
+        if (confirm("全データを上書きします。よろしいですか？")) {
+            allData = imported;
+            saveAll();
+            updateCharList();
+            init();
+            alert("復元完了！");
+        }
     } catch(e) { alert("形式が正しくありません。"); }
 }
 
