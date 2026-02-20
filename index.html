@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ホワサバ パズル管理 (Counter Fixed)</title>
+    <title>ホワサバ パズル管理 v10.1</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
@@ -12,6 +12,9 @@
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); line-height: 1.5; }
         .container { max-width: 800px; margin: 0 auto; background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
+        /* バージョン表示用のスタイル */
+        .version-tag { font-size: 0.7rem; color: #666; vertical-align: middle; margin-left: 8px; font-weight: normal; }
+
         .char-selector { background: #252525; padding: 12px; border-radius: 10px; margin-bottom: 20px; display: flex; gap: 8px; align-items: center; border: 1px solid var(--border); }
         select { background: #333; color: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 5px; flex-grow: 1; outline: none; }
         .char-btn { padding: 8px 12px; font-size: 0.75rem; cursor: pointer; border-radius: 5px; border: none; font-weight: bold; }
@@ -28,9 +31,8 @@
         .set-container { margin-bottom: 10px; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
         .set-header { background: #252525; display: flex; align-items: center; padding-right: 10px; border-left: 4px solid var(--primary); }
         .set-title-area { flex-grow: 1; padding: 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; overflow: hidden; }
-        .set-name { font-weight: bold; font-size: 0.95rem; white-space: nowrap; }
+        .set-name { font-weight: bold; font-size: 0.95rem; white-space: nowrap; flex-shrink: 0; }
         
-        /* カウンター表示用エリア */
         .status-summary { display: flex; gap: 4px; flex-wrap: wrap; }
         .count-badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
         .badge-want { background: #5d4017; color: var(--want); border: 1px solid var(--want); }
@@ -75,7 +77,7 @@
         <button class="char-btn" style="background: #c0392b; color: white;" onclick="deleteChar()">削除</button>
     </div>
 
-    <h1>🧩 ホワサバ パズル管理</h1>
+    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.1</span></h1>
     <div id="puzzle-list"></div>
 
     <div class="output-area">
@@ -99,6 +101,11 @@ if (!allData) {
         if (legacyData) { allData = legacyData; break; }
     }
     if (!allData) allData = { "メイン": { counts: {}, closedCats: {}, closedSets: {} } };
+}
+
+// IDを安全に生成する関数（日本語やスペースを回避）
+function getSafeId(cat, set) {
+    return btoa(unescape(encodeURIComponent(cat + set))).replace(/=/g, "");
 }
 
 async function loadData() {
@@ -168,6 +175,7 @@ function init() {
 
         for (const set in puzzleData[cat]) {
             const setKey = `${cat}_${set}`;
+            const safeId = getSafeId(cat, set);
             const setDiv = document.createElement('div');
             setDiv.className = 'set-container' + (closedSets[setKey] ? '' : ' active');
 
@@ -180,8 +188,7 @@ function init() {
                 const a = setDiv.classList.toggle('active'); 
                 allData[currentChar].closedSets[setKey] = !a; saveAll(); 
             };
-            // ID指定を確実に合わせる
-            titleArea.innerHTML = `<span class="set-name">${set}</span><div id="counter_${cat}_${set}" class="status-summary"></div>`;
+            titleArea.innerHTML = `<span class="set-name">${set}</span><div id="counter_${safeId}" class="status-summary"></div>`;
 
             const btnArea = document.createElement('div');
             btnArea.className = 'bulk-btns';
@@ -219,7 +226,6 @@ function init() {
             setDiv.appendChild(setHeader); setDiv.appendChild(setContent);
             catContent.appendChild(setDiv);
             
-            // 初回表示
             updateCounter(cat, set);
         }
         catDiv.appendChild(catTitle); catDiv.appendChild(catContent); listEl.appendChild(catDiv);
@@ -239,7 +245,8 @@ function updateCounter(cat, set) {
             if (val === 2) extra++;
         });
     }
-    const el = document.getElementById(`counter_${cat}_${set}`);
+    const safeId = getSafeId(cat, set);
+    const el = document.getElementById(`counter_${safeId}`);
     if (el) {
         el.innerHTML = (want > 0 ? `<span class="count-badge badge-want">求:${want}</span>` : "") + 
                        (s5missing > 0 ? `<span class="count-badge badge-s5">S5要:${s5missing}</span>` : "") + 
