@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ホワサバ パズル管理 v10.14</title>
+    <title>ホワサバ パズル管理 v10.15</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root { --primary: #3498db; --secondary: #1a1a1a; --accent: #e74c3c; --want: #f39c12; --bg: #121212; --card-bg: #1e1e1e; --text: #e0e0e0; --border: #333333; --rarity-bg: #252525; }
@@ -55,7 +55,7 @@
         <button class="char-btn" style="background: #27ae60; color: white;" onclick="addChar()">追加</button>
         <button class="char-btn" style="background: #c0392b; color: white;" onclick="deleteChar()">削除</button>
     </div>
-    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.14</span></h1>
+    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.15</span></h1>
     <div id="puzzle-list"></div>
     <div class="output-area">
         <button class="main-btn" onclick="generateOutput()">全生成 & 極小コピー</button>
@@ -76,19 +76,7 @@ let currentChar = "";
 const STORAGE_KEY = 'puzzle_v10_data';
 const CHAR_KEY = 'puzzle_last_char_v10';
 
-function loadAllData() {
-    let data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (!data) {
-        const legacyKeys = ['puzzle_v9_data', 'puzzle_v8_data', 'puzzle_v7_data', 'puzzle_v6_data', 'puzzle_v5_data', 'puzzle_data'];
-        for (const key of legacyKeys) {
-            const oldData = JSON.parse(localStorage.getItem(key));
-            if (oldData) { data = oldData; break; }
-        }
-    }
-    return data || { "メイン": { counts: {}, closedCats: {}, closedSets: {} } };
-}
-
-let allData = loadAllData();
+let allData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { "メイン": { counts: {}, closedCats: {}, closedSets: {} } };
 function getSafeId(str) { return btoa(unescape(encodeURIComponent(str))).replace(/[^a-zA-Z0-9]/g, ""); }
 
 async function loadData() {
@@ -100,8 +88,11 @@ async function loadData() {
     } catch (e) { document.getElementById('puzzle-list').innerText = "データ読み込みエラー"; }
 }
 
+// 略称変換
 function shorten(name) {
-    return name.replace('トロフィーと栄誉', '栄誉').replace('バーニングサンキャノン', '大砲').replace('帝国滅亡の鐘', '鐘').replace('競技場プレイヤー', '競技場').replace('アイアンフラッド', 'フラッド').replace('カリスト戦車', 'カリスト').replace('グループ対決', 'グループ').replace('エリート対決', 'エリート').replace('兵器の王', '王').replace('頂上決戦', '頂上').replace('最強王国', '王国').replace('雪原の冒険', '雪原').replace('文明の夜明け', '文明').replace('氷原の覇者', '覇者').replace('黎明の光', '黎明');
+    return name.replace('トロフィーと栄誉', '栄誉').replace('バーニングサンキャノン', '大砲').replace('帝国滅亡の鐘', '鐘').replace('競技場プレイヤー', '競技場').replace('アイアンフラッド', 'フラッド').replace('カリスト戦車', 'カリスト').replace('グループ対決', 'グループ').replace('エリート対決', 'エリート').replace('兵器の王', '王').replace('頂上決戦', '頂上').replace('最強王国', '王国').replace('雪原の冒険', '雪原').replace('文明の夜明け', '文明').replace('氷原の覇者', '覇者').replace('黎明の光', '黎明')
+               // カテゴリ用
+               .replace('第一段階', '1').replace('第二段階', '2').replace('第三段階', '3');
 }
 
 function updateCharList() {
@@ -197,48 +188,61 @@ function updateStatus(cat, set, sub, num, el) {
 }
 function saveAll() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allData)); localStorage.setItem(CHAR_KEY, currentChar); }
 
+// 【文字数削減版】出力生成
 function generateOutput(targetCat) {
     const counts = allData[currentChar].counts || {};
-    let o = [], w = [];
+    let outputLines = [];
+    
+    // キャラクター名
+    outputLines.push(`【${currentChar}】`);
+
     for (const cat in puzzleData) {
         if (targetCat && cat !== targetCat) continue;
+        
+        let o = [], w = [];
         for (const set in puzzleData[cat]) {
             let lo = [], lw = [];
             for (const sub in puzzleData[cat][set]) {
                 puzzleData[cat][set][sub].forEach(num => {
                     const v = counts[`${cat}_${set}_${sub}_${num}`] || 0;
-                    if (v === 2) lo.push(num); if (v === 1 && sub !== "S5") lw.push(num);
+                    if (v === 2) lo.push(num);
+                    if (v === 1 && sub !== "S5") lw.push(num);
                 });
             }
             if (lo.length) o.push(`${shorten(set)}(${compress(lo)})`);
             if (lw.length) w.push(`${shorten(set)}(${compress(lw)})`);
         }
+
+        // そのカテゴリに譲/求がある場合のみ追加
+        if (o.length > 0 || w.length > 0) {
+            outputLines.push(`《${shorten(cat)}》`); // カテゴリ名も短縮して表示
+            if (o.length) outputLines.push(`譲:${o.join('/')}`);
+            if (w.length) outputLines.push(`求:${w.join('/')}`);
+        }
     }
-    const txt = `【${currentChar}${targetCat?'/'+targetCat:''}】\n譲:${o.join('/')}\n求:${w.join('/')}`;
+
+    const txt = outputLines.join('\n');
     document.getElementById('output').value = txt;
     navigator.clipboard.writeText(txt).then(() => {
         const s = document.getElementById('copy-status'); s.innerText = "📋 短縮コピー完了！"; setTimeout(() => s.innerText = "", 2000);
     });
 }
+
 function compress(n) { if(!n.length) return ""; n.sort((a,b)=>a-b); let r=[], s=n[0], e=n[0]; for(let i=1;i<=n.length;i++){ if(i<n.length&&n[i]===e+1) e=n[i]; else { r.push(s===e?s:`${s}-${e}`); if(i<n.length) s=e=n[i]; } } return r.join(','); }
 
-// エクスポート/インポート関数
 function exportData() {
     const area = document.getElementById('io-area');
     area.value = JSON.stringify(allData);
-    area.select();
-    document.execCommand('copy');
-    alert("全キャラクターのデータをエクスポートしてクリップボードにコピーしました。\nメモ帳などに保存してください。");
+    area.select(); document.execCommand('copy');
+    alert("コピーしました。");
 }
 function importData() {
     const area = document.getElementById('io-area');
-    if(!area.value) { alert("インポートするデータを貼り付けてください。"); return; }
+    if(!area.value) return;
     try {
         const data = JSON.parse(area.value);
-        if(confirm("現在のデータが上書きされます。よろしいですか？")) {
-            allData = data; saveAll(); init(); updateCharList(); alert("インポートが完了しました。");
-        }
-    } catch(e) { alert("データの形式が正しくありません。"); }
+        if(confirm("上書きしますか？")) { allData = data; saveAll(); init(); updateCharList(); alert("完了"); }
+    } catch(e) { alert("形式エラー"); }
 }
 
 loadData();
