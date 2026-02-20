@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ホワサバ パズル管理 v10.15</title>
+    <title>ホワサバ パズル管理 v10.17</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root { --primary: #3498db; --secondary: #1a1a1a; --accent: #e74c3c; --want: #f39c12; --bg: #121212; --card-bg: #1e1e1e; --text: #e0e0e0; --border: #333333; --rarity-bg: #252525; }
@@ -55,7 +55,7 @@
         <button class="char-btn" style="background: #27ae60; color: white;" onclick="addChar()">追加</button>
         <button class="char-btn" style="background: #c0392b; color: white;" onclick="deleteChar()">削除</button>
     </div>
-    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.15</span></h1>
+    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.17</span></h1>
     <div id="puzzle-list"></div>
     <div class="output-area">
         <button class="main-btn" onclick="generateOutput()">全生成 & 極小コピー</button>
@@ -63,10 +63,10 @@
         <textarea id="output" readonly></textarea>
     </div>
     <div class="backup-area">
-        <div style="font-size:0.8rem; margin-bottom:10px; font-weight:bold; color:#aaa;">⚙️ バックアップ設定</div>
-        <button class="sub-btn" onclick="exportData()">エクスポート</button>
-        <button class="sub-btn" onclick="importData()">インポート</button>
-        <textarea id="io-area" placeholder="ここにバックアップデータを貼り付けます"></textarea>
+        <div style="font-size:0.8rem; margin-bottom:10px; font-weight:bold; color:#aaa;">⚙️ 高圧縮バックアップ</div>
+        <button class="sub-btn" onclick="exportData()">圧縮出力</button>
+        <button class="sub-btn" onclick="importData()">復元入力を実行</button>
+        <textarea id="io-area" placeholder="圧縮コードを貼り付け"></textarea>
     </div>
 </div>
 
@@ -88,46 +88,41 @@ async function loadData() {
     } catch (e) { document.getElementById('puzzle-list').innerText = "データ読み込みエラー"; }
 }
 
-// 略称変換
+// 【略称ルール修正】5-6文字までは短縮せず維持する
 function shorten(name) {
-    return name.replace('トロフィーと栄誉', '栄誉').replace('バーニングサンキャノン', '大砲').replace('帝国滅亡の鐘', '鐘').replace('競技場プレイヤー', '競技場').replace('アイアンフラッド', 'フラッド').replace('カリスト戦車', 'カリスト').replace('グループ対決', 'グループ').replace('エリート対決', 'エリート').replace('兵器の王', '王').replace('頂上決戦', '頂上').replace('最強王国', '王国').replace('雪原の冒険', '雪原').replace('文明の夜明け', '文明').replace('氷原の覇者', '覇者').replace('黎明の光', '黎明')
-               // カテゴリ用
-               .replace('第一段階', '1').replace('第二段階', '2').replace('第三段階', '3');
+    return name.replace('トロフィーと栄誉', '栄誉')
+               .replace('バーニングサンキャノン', '大砲')
+               .replace('帝国滅亡の鐘', '鐘')
+               .replace('競技場プレイヤー', '競技場')
+               .replace('アイアンフラッド', 'フラッド')
+               .replace('カリスト戦車', 'カリスト')
+               .replace('グループ対決', 'グループ')
+               .replace('エリート対決', 'エリート')
+               .replace('文明の夜明け', '文明')
+               .replace('黎明の光', '黎明')
+               .replace('第一段階', '(1)')
+               .replace('第二段階', '(2)')
+               .replace('第三段階', '(3)');
+    // 兵器の王、頂上決戦などはそのまま
 }
 
-function updateCharList() {
-    const select = document.getElementById('char-select');
-    select.innerHTML = "";
-    Object.keys(allData).forEach(name => {
-        const opt = new Option(name, name);
-        if(name === currentChar) opt.selected = true;
-        select.add(opt);
-    });
-}
-function addChar() {
-    const name = prompt("名:");
-    if (name && !allData[name]) { allData[name] = { counts: {}, closedCats: {}, closedSets: {} }; currentChar = name; saveAll(); updateCharList(); init(); }
-}
-function deleteChar() {
-    if (Object.keys(allData).length <= 1) return;
-    if (confirm(`削除しますか？`)) { delete allData[currentChar]; currentChar = Object.keys(allData)[0]; saveAll(); updateCharList(); init(); }
-}
+// 基本機能
+function updateCharList() { const select = document.getElementById('char-select'); select.innerHTML = ""; Object.keys(allData).forEach(name => { const opt = new Option(name, name); if(name === currentChar) opt.selected = true; select.add(opt); }); }
+function addChar() { const name = prompt("名:"); if (name && !allData[name]) { allData[name] = { counts: {}, closedCats: {}, closedSets: {} }; currentChar = name; saveAll(); updateCharList(); init(); } }
+function deleteChar() { if (Object.keys(allData).length <= 1) return; if (confirm(`削除しますか？`)) { delete allData[currentChar]; currentChar = Object.keys(allData)[0]; saveAll(); updateCharList(); init(); } }
 function switchChar() { currentChar = document.getElementById('char-select').value; saveAll(); init(); }
 
 function init() {
     const listEl = document.getElementById('puzzle-list'); listEl.innerHTML = "";
     const counts = allData[currentChar].counts || {};
-    const closedCats = allData[currentChar].closedCats || {};
-    const closedSets = allData[currentChar].closedSets || {};
-
     for (const cat in puzzleData) {
-        const catDiv = document.createElement('div'); catDiv.className = 'category' + (closedCats[cat] ? '' : ' active');
+        const catDiv = document.createElement('div'); catDiv.className = 'category' + (allData[currentChar].closedCats[cat] ? '' : ' active');
         const catTitle = document.createElement('div'); catTitle.className = 'category-title';
         catTitle.onclick = (e) => { if(e.target.tagName==='BUTTON') return; const a = catDiv.classList.toggle('active'); allData[currentChar].closedCats[cat] = !a; saveAll(); };
         catTitle.innerHTML = `<span>${cat}</span><button class="cat-copy-btn" onclick="generateOutput('${cat}')">📋</button><div id="cat_counter_${getSafeId(cat)}" class="status-summary"></div>`;
         const catContent = document.createElement('div'); catContent.className = 'category-content';
         for (const set in puzzleData[cat]) {
-            const setKey = `${cat}_${set}`; const setDiv = document.createElement('div'); setDiv.className = 'set-container' + (closedSets[setKey] ? '' : ' active');
+            const setKey = `${cat}_${set}`; const setDiv = document.createElement('div'); setDiv.className = 'set-container' + (allData[currentChar].closedSets[setKey] ? '' : ' active');
             const setHeader = document.createElement('div'); setHeader.className = 'set-header';
             const titleArea = document.createElement('div'); titleArea.className = 'set-title-area';
             titleArea.onclick = () => { const a = setDiv.classList.toggle('active'); allData[currentChar].closedSets[setKey] = !a; saveAll(); };
@@ -188,60 +183,86 @@ function updateStatus(cat, set, sub, num, el) {
 }
 function saveAll() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allData)); localStorage.setItem(CHAR_KEY, currentChar); }
 
-// 【文字数削減版】出力生成
 function generateOutput(targetCat) {
     const counts = allData[currentChar].counts || {};
     let outputLines = [];
-    
-    // キャラクター名
     outputLines.push(`【${currentChar}】`);
-
     for (const cat in puzzleData) {
         if (targetCat && cat !== targetCat) continue;
-        
         let o = [], w = [];
         for (const set in puzzleData[cat]) {
             let lo = [], lw = [];
             for (const sub in puzzleData[cat][set]) {
                 puzzleData[cat][set][sub].forEach(num => {
                     const v = counts[`${cat}_${set}_${sub}_${num}`] || 0;
-                    if (v === 2) lo.push(num);
-                    if (v === 1 && sub !== "S5") lw.push(num);
+                    if (v === 2) lo.push(num); if (v === 1 && sub !== "S5") lw.push(num);
                 });
             }
             if (lo.length) o.push(`${shorten(set)}(${compress(lo)})`);
             if (lw.length) w.push(`${shorten(set)}(${compress(lw)})`);
         }
-
-        // そのカテゴリに譲/求がある場合のみ追加
         if (o.length > 0 || w.length > 0) {
-            outputLines.push(`《${shorten(cat)}》`); // カテゴリ名も短縮して表示
+            outputLines.push(`《${shorten(cat)}》`);
             if (o.length) outputLines.push(`譲:${o.join('/')}`);
             if (w.length) outputLines.push(`求:${w.join('/')}`);
         }
     }
-
     const txt = outputLines.join('\n');
     document.getElementById('output').value = txt;
-    navigator.clipboard.writeText(txt).then(() => {
-        const s = document.getElementById('copy-status'); s.innerText = "📋 短縮コピー完了！"; setTimeout(() => s.innerText = "", 2000);
-    });
+    navigator.clipboard.writeText(txt).then(() => { const s = document.getElementById('copy-status'); s.innerText = "📋 短縮コピー完了！"; setTimeout(() => s.innerText = "", 2000); });
 }
-
 function compress(n) { if(!n.length) return ""; n.sort((a,b)=>a-b); let r=[], s=n[0], e=n[0]; for(let i=1;i<=n.length;i++){ if(i<n.length&&n[i]===e+1) e=n[i]; else { r.push(s===e?s:`${s}-${e}`); if(i<n.length) s=e=n[i]; } } return r.join(','); }
 
+// 高圧縮エクスポート
 function exportData() {
+    let exportObj = { v: "10.16", d: {} };
+    for (let char in allData) {
+        let bitString = "";
+        for (let cat in puzzleData) {
+            for (let set in puzzleData[cat]) {
+                for (let sub in puzzleData[cat][set]) {
+                    puzzleData[cat][set][sub].forEach(num => {
+                        bitString += (allData[char].counts[`${cat}_${set}_${sub}_${num}`] || 0);
+                    });
+                }
+            }
+        }
+        exportObj.d[char] = bitString;
+    }
     const area = document.getElementById('io-area');
-    area.value = JSON.stringify(allData);
+    area.value = JSON.stringify(exportObj);
     area.select(); document.execCommand('copy');
     alert("コピーしました。");
 }
+
 function importData() {
     const area = document.getElementById('io-area');
     if(!area.value) return;
     try {
-        const data = JSON.parse(area.value);
-        if(confirm("上書きしますか？")) { allData = data; saveAll(); init(); updateCharList(); alert("完了"); }
+        const importObj = JSON.parse(area.value);
+        if (importObj.v !== "10.16") {
+            if (confirm("旧形式のデータです。上書きしますか？")) { allData = importObj; saveAll(); location.reload(); }
+            return;
+        }
+        if(confirm("データを復元しますか？")) {
+            let newData = {};
+            for (let char in importObj.d) {
+                newData[char] = { counts: {}, closedCats: {}, closedSets: {} };
+                let bitArray = importObj.d[char].split("");
+                let idx = 0;
+                for (let cat in puzzleData) {
+                    for (let set in puzzleData[cat]) {
+                        for (let sub in puzzleData[cat][set]) {
+                            puzzleData[cat][set][sub].forEach(num => {
+                                let val = parseInt(bitArray[idx++] || 0);
+                                if (val > 0) newData[char].counts[`${cat}_${set}_${sub}_${num}`] = val;
+                            });
+                        }
+                    }
+                }
+            }
+            allData = newData; saveAll(); updateCharList(); init(); alert("復元完了");
+        }
     } catch(e) { alert("形式エラー"); }
 }
 
