@@ -2,68 +2,63 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ホワサバ パズル管理 v10.10</title>
+    <title>ホワサバ パズル管理 v10.12</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
             --primary: #3498db; --secondary: #1a1a1a; --accent: #e74c3c; --want: #f39c12;
             --bg: #121212; --card-bg: #1e1e1e; --text: #e0e0e0; --border: #333333; --rarity-bg: #252525;
         }
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); line-height: 1.5; }
-        .container { max-width: 800px; margin: 0 auto; background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); line-height: 1.5; }
+        .container { max-width: 800px; margin: 0 auto; background: var(--card-bg); padding: 15px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .version-tag { font-size: 0.7rem; color: #666; vertical-align: middle; margin-left: 8px; font-weight: normal; }
-
-        .char-selector { background: #252525; padding: 12px; border-radius: 10px; margin-bottom: 20px; display: flex; gap: 8px; align-items: center; border: 1px solid var(--border); }
+        
+        /* キャラクター選択 */
+        .char-selector { background: #252525; padding: 10px; border-radius: 10px; margin-bottom: 15px; display: flex; gap: 8px; align-items: center; border: 1px solid var(--border); }
         select { background: #333; color: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 5px; flex-grow: 1; outline: none; }
         .char-btn { padding: 8px 12px; font-size: 0.75rem; cursor: pointer; border-radius: 5px; border: none; font-weight: bold; }
 
-        h1 { font-size: 1.2rem; text-align: center; color: var(--primary); margin: 10px 0 20px; }
+        h1 { font-size: 1.1rem; text-align: center; color: var(--primary); margin: 5px 0 15px; }
 
-        .category { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-        .category-title { background: var(--secondary); color: var(--primary); padding: 14px 20px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; position: relative; }
+        /* カテゴリ・セット */
+        .category { margin-bottom: 10px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        .category-title { background: var(--secondary); color: var(--primary); padding: 12px 15px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; position: relative; }
         .cat-copy-btn { background: #444; color: #fff; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; cursor: pointer; z-index: 10; margin-left: 5px; }
-        .cat-copy-btn:hover { background: var(--primary); }
-
         .category-title::after { content: '▼'; font-size: 0.8rem; transition: 0.3s; color: var(--text); margin-left: auto; }
         .category.active .category-title::after { transform: rotate(180deg); }
-        .category-content { display: none; padding: 15px; }
+        .category-content { display: none; padding: 10px; }
         .category.active .category-content { display: block; }
 
+        /* カウンター・バッジ */
         .status-summary { display: flex; gap: 4px; flex-wrap: wrap; pointer-events: none; }
-        .count-badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; font-weight: bold; white-space: nowrap; border: 1px solid rgba(255,255,255,0.1); }
+        .count-badge { font-size: 0.65rem; padding: 1px 4px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(255,255,255,0.1); }
         .badge-want { background: #5d4017; color: var(--want); border-color: var(--want); }
         .badge-extra { background: #4a1a1a; color: #ff7675; border-color: var(--accent); }
         .badge-s5 { background: #444; color: #bbb; border-color: #666; }
 
-        .set-container { margin-bottom: 10px; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
-        .set-header { background: #252525; display: flex; align-items: center; padding-right: 10px; border-left: 4px solid var(--primary); }
-        .set-title-area { flex-grow: 1; padding: 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; overflow: hidden; }
-        .set-name { font-weight: bold; font-size: 0.95rem; white-space: nowrap; flex-shrink: 0; }
+        .set-container { margin-bottom: 8px; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
+        .set-header { background: #252525; display: flex; align-items: center; padding-right: 8px; border-left: 4px solid var(--primary); }
+        .set-title-area { flex-grow: 1; padding: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+        .set-name { font-weight: bold; font-size: 0.9rem; flex-shrink: 0; }
         
         .bulk-btns { display: flex; gap: 4px; }
-        .bulk-btn { font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; color: white; opacity: 0.8; }
-        .btn-all-owned { background: var(--primary); }
-        .btn-all-want { background: var(--want); }
-        .btn-reset { background: #555; }
+        .bulk-btn { font-size: 0.65rem; padding: 4px 6px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; color: white; }
 
-        .set-content { display: none; padding: 10px; background: #1e1e1e; }
+        .set-content { display: none; padding: 8px; background: #1e1e1e; }
         .set-container.active .set-content { display: block; }
 
-        .rarity-group { margin-bottom: 10px; padding: 8px; background: var(--rarity-bg); border-radius: 6px; }
-        .stars { color: #f1c40f; font-size: 0.75rem; margin-bottom: 5px; display: block; }
-        .piece-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 8px; }
-        .piece-item { display: flex; flex-direction: column; align-items: center; padding: 6px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; background: #2c2c2c; transition: 0.1s; position: relative; }
+        .rarity-group { margin-bottom: 8px; padding: 6px; background: var(--rarity-bg); border-radius: 6px; }
+        .stars { color: #f1c40f; font-size: 0.7rem; margin-bottom: 4px; display: block; }
+        .piece-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 6px; }
+        .piece-item { display: flex; flex-direction: column; align-items: center; padding: 6px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; background: #2c2c2c; }
         .piece-item.want { background: #5d4017; border-color: var(--want); }
         .piece-item.extra { background: #4a1a1a; border-color: var(--accent); }
         .piece-item.owned { background: #1a3a5a; border-color: var(--primary); }
-        .piece-num { font-size: 0.85rem; font-weight: bold; }
-        .status-badge { font-size: 0.5rem; color: white; padding: 1px 3px; border-radius: 3px; margin-top: 3px; display: none; font-weight: normal; }
-        .want .status-badge, .extra .status-badge { display: block; }
-        .want .status-badge { background: var(--want); }
-        .extra .status-badge { background: var(--accent); }
+        .piece-num { font-size: 0.8rem; font-weight: bold; }
 
-        .output-area { background: var(--secondary); padding: 15px; border-radius: 12px; margin-top: 20px; border: 1px solid var(--border); }
-        textarea { width: 100%; height: 120px; margin-top: 10px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; box-sizing: border-box; font-size: 0.8rem; resize: none; line-height: 1.4; }
+        /* 出力エリア */
+        .output-area { background: var(--secondary); padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px solid var(--border); }
+        textarea { width: 100%; height: 100px; margin-top: 8px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 0.75rem; resize: none; line-height: 1.3; }
         button.main-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         #copy-status { font-size: 0.75rem; color: #2ecc71; text-align: center; height: 1.2em; margin-top: 5px; }
     </style>
@@ -77,13 +72,13 @@
         <button class="char-btn" style="background: #c0392b; color: white;" onclick="deleteChar()">削除</button>
     </div>
 
-    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.10</span></h1>
+    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.12</span></h1>
     <div id="puzzle-list"></div>
 
     <div class="output-area">
-        <button class="main-btn" onclick="generateOutput()">全カテゴリ生成 & コピー</button>
+        <button class="main-btn" onclick="generateOutput()">全生成 & 極小コピー</button>
         <div id="copy-status"></div>
-        <textarea id="output" readonly placeholder="📋ボタンでコピーされます"></textarea>
+        <textarea id="output" readonly placeholder="📋コピーされる内容がここに表示されます"></textarea>
     </div>
 </div>
 
@@ -92,38 +87,32 @@ let puzzleData = {};
 let currentChar = "";
 const STORAGE_KEY = 'puzzle_v10_data';
 const CHAR_KEY = 'puzzle_last_char_v10';
-let allData = JSON.parse(localStorage.getItem(STORAGE_KEY));
-
-if (!allData) {
-    allData = { "メイン": { counts: {}, closedCats: {}, closedSets: {} } };
-}
+let allData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { "メイン": { counts: {}, closedCats: {}, closedSets: {} } };
 
 function getSafeId(str) { return btoa(unescape(encodeURIComponent(str))).replace(/[^a-zA-Z0-9]/g, ""); }
 
 async function loadData() {
     try {
-        const response = await fetch('data.json');
+        const response = await fetch('https://wos-beep.github.io/puzzle/data.json');
         puzzleData = await response.json();
-        let lastChar = localStorage.getItem(CHAR_KEY);
-        currentChar = (lastChar && allData[lastChar]) ? lastChar : Object.keys(allData)[0];
+        currentChar = localStorage.getItem(CHAR_KEY) || Object.keys(allData)[0];
         updateCharList();
         init();
-    } catch (e) { document.getElementById('puzzle-list').innerText = "data.json error"; }
+    } catch (e) { document.getElementById('puzzle-list').innerText = "データ読み込みエラー"; }
 }
 
 function updateCharList() {
     const select = document.getElementById('char-select');
     select.innerHTML = "";
     Object.keys(allData).forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name; opt.innerText = name;
+        const opt = new Option(name, name);
         if(name === currentChar) opt.selected = true;
-        select.appendChild(opt);
+        select.add(opt);
     });
 }
 
 function addChar() {
-    const name = prompt("キャラクター名:");
+    const name = prompt("新しいキャラクター名:");
     if (name && !allData[name]) {
         allData[name] = { counts: {}, closedCats: {}, closedSets: {} };
         currentChar = name; saveAll(); updateCharList(); init();
@@ -132,9 +121,8 @@ function addChar() {
 
 function deleteChar() {
     if (Object.keys(allData).length <= 1) return;
-    if (confirm(`「${currentChar}」を削除しますか？`)) { 
-        delete allData[currentChar]; 
-        currentChar = Object.keys(allData)[0]; 
+    if (confirm(`「${currentChar}」のデータを削除しますか？`)) { 
+        delete allData[currentChar]; currentChar = Object.keys(allData)[0]; 
         saveAll(); updateCharList(); init(); 
     }
 }
@@ -159,7 +147,7 @@ function init() {
             const a = catDiv.classList.toggle('active'); 
             allData[currentChar].closedCats[cat] = !a; saveAll(); 
         };
-        catTitle.innerHTML = `<span>${cat}</span><button class="cat-copy-btn" onclick="generateOutput('${cat}')">📋コピー</button><div id="cat_counter_${catSafeId}" class="status-summary"></div>`;
+        catTitle.innerHTML = `<span>${cat}</span><button class="cat-copy-btn" onclick="generateOutput('${cat}')">📋</button><div id="cat_counter_${catSafeId}" class="status-summary"></div>`;
 
         const catContent = document.createElement('div');
         catContent.className = 'category-content';
@@ -182,7 +170,7 @@ function init() {
 
             const btnArea = document.createElement('div');
             btnArea.className = 'bulk-btns';
-            btnArea.innerHTML = `<button class="bulk-btn btn-all-owned" onclick="bulkUpdate('${cat}','${set}',3)">済</button><button class="bulk-btn btn-all-want" onclick="bulkUpdate('${cat}','${set}',1)">求</button><button class="bulk-btn btn-reset" onclick="bulkUpdate('${cat}','${set}',0)">×</button>`;
+            btnArea.innerHTML = `<button class="bulk-btn" style="background:#3498db;" onclick="bulkUpdate('${cat}','${set}',3)">済</button><button class="bulk-btn" style="background:#f39c12;" onclick="bulkUpdate('${cat}','${set}',1)">求</button><button class="bulk-btn" style="background:#555;" onclick="bulkUpdate('${cat}','${set}',0)">×</button>`;
 
             const setContent = document.createElement('div');
             setContent.className = 'set-content';
@@ -199,18 +187,18 @@ function init() {
                     item.id = `item_${id}`;
                     item.className = `piece-item ${val===1?'want':''} ${val===2?'extra':''} ${val===3?'owned':''}`;
                     item.onclick = () => updateStatus(cat, set, sub, num, item);
-                    item.oncontextmenu = (e) => { e.preventDefault(); updateStatus(cat, set, sub, num, item, 2); };
-                    item.innerHTML = `<span class="piece-num">${num}</span><span class="status-badge">${val===1?'求':(val===2?'譲':'')}</span>`;
+                    item.innerHTML = `<span class="piece-num">${num}</span>`;
                     pieceList.appendChild(item);
                 });
                 rarDiv.appendChild(pieceList);
                 setContent.appendChild(rarDiv);
             }
-            setHeader.appendChild(titleArea); setHeader.appendChild(btnArea);
-            setDiv.appendChild(setHeader); setDiv.appendChild(setContent);
+            setHeader.append(titleArea, btnArea);
+            setDiv.append(setHeader, setContent);
             catContent.appendChild(setDiv);
         }
-        catDiv.appendChild(catTitle); catDiv.appendChild(catContent); listEl.appendChild(catDiv);
+        catDiv.append(catTitle, catContent);
+        listEl.appendChild(catDiv);
     }
     updateAllCounters();
 }
@@ -222,14 +210,13 @@ function updateAllCounters() {
             const res = updateCounter(cat, set);
             catWant += res.want; catS5 += res.s5; catExtra += res.extra;
         }
-        const catSafeId = getSafeId(cat);
-        const el = document.getElementById(`cat_counter_${catSafeId}`);
+        const el = document.getElementById(`cat_counter_${getSafeId(cat)}`);
         if (el) {
-            let html = "";
-            if (catWant > 0) html += `<span class="count-badge badge-want">求:${catWant}</span>`;
-            if (catS5 > 0) html += `<span class="count-badge badge-s5">S5要:${catS5}</span>`;
-            if (catExtra > 0) html += `<span class="count-badge badge-extra">譲:${catExtra}</span>`;
-            el.innerHTML = html;
+            let h = "";
+            if (catWant > 0) h += `<span class="count-badge badge-want">求:${catWant}</span>`;
+            if (catS5 > 0) h += `<span class="count-badge badge-s5">S5:${catS5}</span>`;
+            if (catExtra > 0) h += `<span class="count-badge badge-extra">譲:${catExtra}</span>`;
+            el.innerHTML = h;
         }
     }
 }
@@ -244,14 +231,13 @@ function updateCounter(cat, set) {
             if (val === 2) extra++;
         });
     }
-    const setSafeId = getSafeId(cat + set);
-    const el = document.getElementById(`counter_${setSafeId}`);
+    const el = document.getElementById(`counter_${getSafeId(cat+set)}`);
     if (el) {
-        let html = "";
-        if (want > 0) html += `<span class="count-badge badge-want">求:${want}</span>`;
-        if (s5 > 0) html += `<span class="count-badge badge-s5">S5要:${s5}</span>`;
-        if (extra > 0) html += `<span class="count-badge badge-extra">譲:${extra}</span>`;
-        el.innerHTML = html;
+        let h = "";
+        if (want > 0) h += `<span class="count-badge badge-want">求:${want}</span>`;
+        if (s5 > 0) h += `<span class="count-badge badge-s5">S5:${s5}</span>`;
+        if (extra > 0) h += `<span class="count-badge badge-extra">譲:${extra}</span>`;
+        el.innerHTML = h;
     }
     return { want, s5, extra };
 }
@@ -262,75 +248,76 @@ function bulkUpdate(cat, set, val) {
             const id = `${cat}_${set}_${sub}_${num}`;
             allData[currentChar].counts[id] = val;
             const item = document.getElementById(`item_${id}`);
-            if(item) {
-                item.className = `piece-item ${val===1?'want':''} ${val===2?'extra':''} ${val===3?'owned':''}`;
-                item.querySelector('.status-badge').innerText = val===1?'求':(val===2?'譲':'');
-            }
+            if(item) item.className = `piece-item ${val===1?'want':''} ${val===2?'extra':''} ${val===3?'owned':''}`;
         });
     }
     updateAllCounters(); saveAll();
 }
 
-function updateStatus(cat, set, sub, num, el, forceVal) {
+function updateStatus(cat, set, sub, num, el) {
     const id = `${cat}_${set}_${sub}_${num}`;
-    const nextVal = (forceVal !== undefined) ? forceVal : ((allData[currentChar].counts[id] || 0) + 1) % 4;
+    const nextVal = ((allData[currentChar].counts[id] || 0) + 1) % 4;
     allData[currentChar].counts[id] = nextVal;
     el.className = `piece-item ${nextVal===1?'want':''} ${nextVal===2?'extra':''} ${nextVal===3?'owned':''}`;
-    el.querySelector('.status-badge').innerText = nextVal===1?'求':(nextVal===2?'譲':'');
     updateAllCounters(); saveAll();
 }
 
 function saveAll() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allData)); localStorage.setItem(CHAR_KEY, currentChar); }
 
-// 【文字数削減】フォーマット関数
-function formatCompact(d) {
-    let list = [];
-    for(const c in d){
-        for(const st in d[c]) {
-            list.push(`${st}(${compress(d[c][st])})`);
-        }
-    }
-    return list.length ? list.join(' / ') : "なし";
+// 【極限短縮】略称変換関数
+function shorten(name) {
+    return name.replace('トロフィーと栄誉', '栄誉')
+               .replace('バーニングサンキャノン', '大砲')
+               .replace('帝国滅亡の鐘', '鐘')
+               .replace('競技場プレイヤー', '競技場')
+               .replace('アイアンフラッド', 'フラッド')
+               .replace('カリスト戦車', 'カリスト')
+               .replace('グループ対決', 'グループ')
+               .replace('エリート対決', 'エリート')
+               .replace('兵器の王', '王')
+               .replace('頂上決戦', '頂上')
+               .replace('最強王国', '王国')
+               .replace('雪原の冒険', '雪原')
+               .replace('文明の夜明け', '文明')
+               .replace('氷原の覇者', '覇者')
+               .replace('黎明の光', '黎明');
 }
 
 function generateOutput(targetCat) {
     const counts = allData[currentChar].counts || {};
-    let res = { offers: {}, wants: {} };
+    let o = [], w = [];
     for (const cat in puzzleData) {
         if (targetCat && cat !== targetCat) continue;
         for (const set in puzzleData[cat]) {
+            let lo = [], lw = [];
             for (const sub in puzzleData[cat][set]) {
                 puzzleData[cat][set][sub].forEach(num => {
-                    const id = `${cat}_${set}_${sub}_${num}`, v = counts[id] || 0;
-                    if (v === 2) appendRes(res.offers, cat, set, num);
-                    if (v === 1 && sub !== "S5") appendRes(res.wants, cat, set, num);
+                    const v = counts[`${cat}_${set}_${sub}_${num}`] || 0;
+                    if (v === 2) lo.push(num);
+                    if (v === 1 && sub !== "S5") lw.push(num);
                 });
             }
+            if (lo.length) o.push(`${shorten(set)}(${compress(lo)})`);
+            if (lw.length) w.push(`${shorten(set)}(${compress(lw)})`);
         }
     }
     
-    // 省エネ表示
-    const label = targetCat ? `【${currentChar}/${targetCat}】` : `【${currentChar}全件】`;
-    let txt = label + "\r\n";
-    txt += "譲: " + formatCompact(res.offers) + "\r\n";
-    txt += "求: " + formatCompact(res.wants);
+    // 【極小フォーマット】スペースとコロンを節約
+    const label = targetCat ? `【${currentChar}/${targetCat}】` : `【${currentChar}】`;
+    let txt = label + "\n";
+    txt += "譲:" + o.join('/') + "\n";
+    txt += "求:" + w.join('/');
 
     const outputEl = document.getElementById('output');
     outputEl.value = txt;
     
     navigator.clipboard.writeText(txt).then(() => {
         const status = document.getElementById('copy-status');
-        status.innerText = "📋 コピー完了！";
+        status.innerText = "📋 短縮コピー完了！";
         setTimeout(() => { status.innerText = ""; }, 2000);
-    }).catch(() => {
-        outputEl.select();
-        document.execCommand('copy');
     });
-
-    outputEl.scrollIntoView({ behavior: 'smooth' });
 }
 
-function appendRes(obj, c, s, n) { if(!obj[c]) obj[c]={}; if(!obj[c][s]) obj[c][s]=[]; obj[c][s].push(n); }
 function compress(n) { if(!n.length) return ""; n.sort((a,b)=>a-b); let r=[], s=n[0], e=n[0]; for(let i=1;i<=n.length;i++){ if(i<n.length&&n[i]===e+1) e=n[i]; else { r.push(s===e?s:`${s}-${e}`); if(i<n.length) s=e=n[i]; } } return r.join(','); }
 
 loadData();
