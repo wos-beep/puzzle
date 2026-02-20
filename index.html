@@ -215,6 +215,7 @@ function updateStatus(id, el, nextVal) {
 
 function saveAll() { localStorage.setItem('puzzle_v7_data', JSON.stringify(allData)); localStorage.setItem('puzzle_last_char_v7', currentChar); }
 
+// --- generateOutput 関数のみ抜粋して修正内容を示します ---
 function generateOutput() {
     const counts = allData[currentChar].counts || {};
     let res = { offers: {}, wants: {} };
@@ -222,14 +223,26 @@ function generateOutput() {
         for (const set in puzzleData[cat]) {
             for (const sub in puzzleData[cat][set]) {
                 puzzleData[cat][set][sub].forEach(num => {
-                    const val = counts[`${cat}_${set}_${sub}_${num}`] || 0;
+                    const id = `${cat}_${set}_${sub}_${num}`;
+                    const val = counts[id] || 0;
+                    
+                    // 「2:渡せる(余り)」だけを譲れるリストに入れる
                     if (val === 2) appendRes(res.offers, cat, set, num);
+                    // 「1:欲しい」だけを欲しいリストに入れる
                     if (val === 1) appendRes(res.wants, cat, set, num);
+                    
+                    // 「3:所持」は自分用メモなので、ここには含めない
                 });
             }
         }
     }
-    document.getElementById('output').value = `【${currentChar}のパズル】\n【持っているもの】\n${format(res.offers)}\n【欲しいもの】\n${format(res.wants)}`;
+    
+    // 見出しをより分かりやすく変更
+    const outputText = `【${currentChar}のパズル状況】\n\n` +
+                       `【譲れます（余り）】\n${format(res.offers)}\n` +
+                       `【探しています】\n${format(res.wants)}`;
+                       
+    document.getElementById('output').value = outputText;
 }
 
 function appendRes(obj, cat, set, num) { if (!obj[cat]) obj[cat] = {}; if (!obj[cat][set]) obj[cat][set] = []; obj[cat][set].push(num); }
@@ -243,3 +256,4 @@ loadData();
 </script>
 </body>
 </html>
+
