@@ -244,6 +244,7 @@ function updateStatus(id, el, nextVal) {
 
 function saveAll() { localStorage.setItem('puzzle_v8_data', JSON.stringify(allData)); localStorage.setItem('puzzle_last_char_v8', currentChar); }
 
+// --- generateOutput 関数の修正版 ---
 function generateOutput() {
     const counts = allData[currentChar].counts || {};
     let res = { offers: {}, wants: {} };
@@ -251,14 +252,26 @@ function generateOutput() {
         for (const set in puzzleData[cat]) {
             for (const sub in puzzleData[cat][set]) {
                 puzzleData[cat][set][sub].forEach(num => {
-                    const val = counts[`${cat}_${set}_${sub}_${num}`] || 0;
+                    const id = `${cat}_${set}_${sub}_${num}`;
+                    const val = counts[id] || 0;
+                    
+                    // 「2:渡せる(余り)」は全レアリティ共有OK
                     if (val === 2) appendRes(res.offers, cat, set, num);
-                    if (val === 1) appendRes(res.wants, cat, set, num);
+                    
+                    // 「1:欲しい」は、レアリティが S5 以外の場合のみリストに載せる
+                    if (val === 1 && sub !== "S5") {
+                        appendRes(res.wants, cat, set, num);
+                    }
                 });
             }
         }
     }
-    document.getElementById('output').value = `【${currentChar}のパズル状況】\n\n【譲れます（余り）】\n${format(res.offers)}\n【探しています】\n${format(res.wants)}`;
+    
+    const outputText = `【${currentChar}のパズル状況】\n\n` +
+                       `【譲れます（余り）】\n${format(res.offers)}\n` +
+                       `【探しています】\n${format(res.wants)}`;
+                       
+    document.getElementById('output').value = outputText;
 }
 
 function appendRes(obj, cat, set, num) { if (!obj[cat]) obj[cat] = {}; if (!obj[cat][set]) obj[cat][set] = []; obj[cat][set].push(num); }
@@ -272,3 +285,4 @@ loadData();
 </script>
 </body>
 </html>
+
