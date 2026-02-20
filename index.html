@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ホワサバ パズル管理 v10.4</title>
+    <title>ホワサバ パズル管理 v10.5</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
@@ -23,17 +23,14 @@
         .category { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
         .category-title { background: var(--secondary); color: var(--primary); padding: 14px 20px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; position: relative; }
         
-        /* カテゴリ用生成ボタン */
         .cat-copy-btn { background: #444; color: #fff; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; cursor: pointer; z-index: 10; margin-left: 5px; }
         .cat-copy-btn:hover { background: var(--primary); }
 
         .category-title::after { content: '▼'; font-size: 0.8rem; transition: 0.3s; color: var(--text); margin-left: auto; }
         .category.active .category-title::after { transform: rotate(180deg); }
-        
         .category-content { display: none; padding: 15px; }
         .category.active .category-content { display: block; }
 
-        /* サマリー共通スタイル */
         .status-summary { display: flex; gap: 4px; flex-wrap: wrap; pointer-events: none; }
         .count-badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; font-weight: bold; white-space: nowrap; border: 1px solid rgba(255,255,255,0.1); }
         .badge-want { background: #5d4017; color: var(--want); border-color: var(--want); }
@@ -70,7 +67,7 @@
         .extra .status-badge { background: var(--accent); }
 
         .output-area { background: var(--secondary); padding: 15px; border-radius: 12px; margin-top: 20px; border: 1px solid var(--border); }
-        textarea { width: 100%; height: 120px; margin-top: 10px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; box-sizing: border-box; font-size: 0.85rem; resize: none; }
+        textarea { width: 100%; height: 150px; margin-top: 10px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; box-sizing: border-box; font-size: 0.85rem; resize: none; }
         button.main-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
@@ -83,19 +80,18 @@
         <button class="char-btn" style="background: #c0392b; color: white;" onclick="deleteChar()">削除</button>
     </div>
 
-    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.4</span></h1>
+    <h1>🧩 ホワサバ パズル管理<span class="version-tag">v10.5</span></h1>
     <div id="puzzle-list"></div>
 
     <div class="output-area">
         <button class="main-btn" onclick="generateOutput()">全カテゴリ分を生成</button>
-        <textarea id="output" readonly placeholder="ボタンを押すとここにテキストが生成されます"></textarea>
+        <textarea id="output" readonly placeholder="📋ボタンまたは生成ボタンを押すとここにテキストが表示されます"></textarea>
     </div>
 </div>
 
 <script>
 let puzzleData = {};
 let currentChar = "";
-
 const STORAGE_KEY = 'puzzle_v10_data';
 const CHAR_KEY = 'puzzle_last_char_v10';
 let allData = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -115,7 +111,7 @@ async function loadData() {
     try {
         const response = await fetch('data.json');
         puzzleData = await response.json();
-        let lastChar = localStorage.getItem(CHAR_KEY) || localStorage.getItem('puzzle_last_char_v8');
+        let lastChar = localStorage.getItem(CHAR_KEY);
         currentChar = (lastChar && allData[lastChar]) ? lastChar : Object.keys(allData)[0];
         updateCharList();
         init();
@@ -163,23 +159,14 @@ function init() {
         const catSafeId = getSafeId(cat);
         const catDiv = document.createElement('div');
         catDiv.className = 'category' + (closedCats[cat] ? '' : ' active');
-        
         const catTitle = document.createElement('div');
         catTitle.className = 'category-title';
-        
-        // カテゴリクリックで開閉（ボタン部分は除外）
         catTitle.onclick = (e) => {
             if(e.target.tagName === 'BUTTON') return;
             const a = catDiv.classList.toggle('active'); 
             allData[currentChar].closedCats[cat] = !a; saveAll(); 
         };
-
-        // タイトル + コピーボタン + サマリー
-        catTitle.innerHTML = `
-            <span>${cat}</span>
-            <button class="cat-copy-btn" onclick="generateOutput('${cat}')">📋</button>
-            <div id="cat_counter_${catSafeId}" class="status-summary"></div>
-        `;
+        catTitle.innerHTML = `<span>${cat}</span><button class="cat-copy-btn" onclick="generateOutput('${cat}')">📋</button><div id="cat_counter_${catSafeId}" class="status-summary"></div>`;
 
         const catContent = document.createElement('div');
         catContent.className = 'category-content';
@@ -192,7 +179,6 @@ function init() {
 
             const setHeader = document.createElement('div');
             setHeader.className = 'set-header';
-
             const titleArea = document.createElement('div');
             titleArea.className = 'set-title-area';
             titleArea.onclick = () => { 
@@ -211,7 +197,6 @@ function init() {
 
             const setContent = document.createElement('div');
             setContent.className = 'set-content';
-
             for (const sub in puzzleData[cat][set]) {
                 const rarDiv = document.createElement('div');
                 rarDiv.className = 'rarity-group';
@@ -309,15 +294,21 @@ function updateStatus(cat, set, sub, num, el, forceVal) {
 
 function saveAll() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allData)); localStorage.setItem(CHAR_KEY, currentChar); }
 
-// カテゴリ指定対応の生成関数
+function format(d) { 
+    let s = ""; 
+    for(const c in d){ 
+        for(const st in d[c]) { 
+            s += `・${st}: ${compress(d[c][st])}\n`; 
+        }
+    } 
+    return s.trim() ? s : "なし\n"; 
+}
+
 function generateOutput(targetCat) {
     const counts = allData[currentChar].counts || {};
     let res = { offers: {}, wants: {} };
-    
     for (const cat in puzzleData) {
-        // カテゴリ指定がある場合は、それ以外をスキップ
         if (targetCat && cat !== targetCat) continue;
-        
         for (const set in puzzleData[cat]) {
             for (const sub in puzzleData[cat][set]) {
                 puzzleData[cat][set][sub].forEach(num => {
@@ -329,23 +320,18 @@ function generateOutput(targetCat) {
         }
     }
     
-    const label = targetCat ? `【${currentChar} / ${targetCat}】` : `【${currentChar}のパズル状況】`;
-    let txt = `${label}\n\n【譲れます】\n${format(res.offers)}\n【求めてます】\n${format(res.wants)}`;
-    document.getElementById('output').value = txt.trim().replace(/\r\n/g, "\n");
-    
-    // 生成したことを知らせるために最下部へスクロール
-    document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
+    const label = targetCat ? `【${currentChar} / ${targetCat}】` : `【${currentChar} 全カテゴリ】`;
+    let txt = label + "\n\n━━━━━━━━━━━━\n";
+    txt += "【譲れます】\n" + format(res.offers) + "\n";
+    txt += "【求めてます】\n" + format(res.wants) + "━━━━━━━━━━━━";
+
+    const outputEl = document.getElementById('output');
+    outputEl.value = txt;
+    outputEl.scrollIntoView({ behavior: 'smooth' });
+    outputEl.select(); // 自動で全選択
 }
 
 function appendRes(obj, c, s, n) { if(!obj[c]) obj[c]={}; if(!obj[c][s]) obj[c][s]=[]; obj[c][s].push(n); }
-function format(d) { 
-    let s=""; 
-    for(const c in d){ 
-        s += `${c}:\n`; 
-        for(const st in d[c]) { s += `-${st}(${compress(d[c][st])})\n`; }
-    } 
-    return s || "なし\n"; 
-}
 function compress(n) { if(!n.length) return ""; n.sort((a,b)=>a-b); let r=[], s=n[0], e=n[0]; for(let i=1;i<=n.length;i++){ if(i<n.length&&n[i]===e+1) e=n[i]; else { r.push(s===e?s:`${s}~${e}`); if(i<n.length) s=e=n[i]; } } return r.join(','); }
 
 loadData();
